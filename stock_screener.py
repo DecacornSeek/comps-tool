@@ -156,17 +156,17 @@ class StockScreener:
         print('=' * 60)
         
         # Basic info
-        print(f'💰 Price: ${stock_data["Price"]:.2f}')
-        print(f'📊 Market Cap: ${stock_data["MarketCap"]/1e9:.1f}B')
+        print(f'💰 Price: ${float(stock_data["Price"]):.2f}' if pd.notna(stock_data["Price"]) and stock_data["Price"] != 'N/A' else '💰 Price: N/A')
+        print(f'📊 Market Cap: ${float(stock_data["MarketCap"])/1e9:.1f}B' if pd.notna(stock_data["MarketCap"]) and stock_data["MarketCap"] != 'N/A' else '📊 Market Cap: N/A')
         print(f'🏭 Industry: {stock_data.get("Industry", "N/A")}')
         print(f'🌍 Sector: {stock_data.get("Sector", "N/A")}')
         
         # Key metrics
         print(f'\n📈 KEY METRICS:')
-        print(f'   P/E (TTM): {stock_data["P/E (TTM)"]:.1f}' if pd.notna(stock_data["P/E (TTM)"]) else '   P/E (TTM): N/A')
-        print(f'   ROE: {stock_data["ROE"]:.1%}' if pd.notna(stock_data["ROE"]) else '   ROE: N/A')
-        print(f'   Revenue Growth: {stock_data["RevenueGrowth"]:.1%}' if pd.notna(stock_data["RevenueGrowth"]) else '   Revenue Growth: N/A')
-        print(f'   Profit Margin: {stock_data["ProfitMargin"]:.1%}' if pd.notna(stock_data["ProfitMargin"]) else '   Profit Margin: N/A')
+        print(f'   P/E (TTM): {float(stock_data["P/E (TTM)"]):.1f}' if pd.notna(stock_data["P/E (TTM)"]) and stock_data["P/E (TTM)"] != 'N/A' else '   P/E (TTM): N/A')
+        print(f'   ROE: {float(stock_data["ROE"]):.1%}' if pd.notna(stock_data["ROE"]) and stock_data["ROE"] != 'N/A' else '   ROE: N/A')  
+        print(f'   Revenue Growth: {float(stock_data["RevenueGrowth"]):.1%}' if pd.notna(stock_data["RevenueGrowth"]) and stock_data["RevenueGrowth"] != 'N/A' else '   Revenue Growth: N/A')
+        print(f'   Profit Margin: {float(stock_data["ProfitMargin"]):.1%}' if pd.notna(stock_data["ProfitMargin"]) and stock_data["ProfitMargin"] != 'N/A' else '   Profit Margin: N/A')
         
         # Auto peer selection if not provided
         if peer_tickers is None:
@@ -204,10 +204,25 @@ class StockScreener:
             print(f'   {"-"*50}')
             
             for _, row in comp_df.iterrows():
-                pe_str = f"{row['P/E (TTM)']:.1f}" if pd.notna(row['P/E (TTM)']) else "N/A"
-                roe_str = f"{row['ROE']:.1%}" if pd.notna(row['ROE']) else "N/A"
-                growth_str = f"{row['RevenueGrowth']:.1%}" if pd.notna(row['RevenueGrowth']) else "N/A"
-                margin_str = f"{row['ProfitMargin']:.1%}" if pd.notna(row['ProfitMargin']) else "N/A"
+                try:
+                    pe_str = f"{float(row['P/E (TTM)']):.1f}" if pd.notna(row['P/E (TTM)']) else "N/A"
+                except (ValueError, TypeError):
+                    pe_str = "N/A"
+                    
+                try:
+                    roe_str = f"{float(row['ROE']):.1%}" if pd.notna(row['ROE']) else "N/A"
+                except (ValueError, TypeError):
+                    roe_str = "N/A"
+                    
+                try:
+                    growth_str = f"{float(row['RevenueGrowth']):.1%}" if pd.notna(row['RevenueGrowth']) else "N/A"
+                except (ValueError, TypeError):
+                    growth_str = "N/A"
+                    
+                try:
+                    margin_str = f"{float(row['ProfitMargin']):.1%}" if pd.notna(row['ProfitMargin']) else "N/A"
+                except (ValueError, TypeError):
+                    margin_str = "N/A"
                 highlight = " ←" if row['Ticker'].upper() == ticker else ""
                 
                 print(f'   {row["Ticker"]:8s} {pe_str:>6s} {roe_str:>8s} {growth_str:>8s} {margin_str:>8s}{highlight}')
@@ -221,19 +236,27 @@ class StockScreener:
                 if 'P/E (TTM)' in numeric_peers.columns:
                     peer_pe_values = pd.to_numeric(peers_df['P/E (TTM)'], errors='coerce').dropna()
                     if len(peer_pe_values) > 0 and pd.notna(stock_data['P/E (TTM)']):
-                        peer_median_pe = peer_pe_values.median()
-                        pe_vs_peers = (stock_data['P/E (TTM)'] - peer_median_pe) / peer_median_pe * 100
-                        pe_assessment = "CHEAPER" if pe_vs_peers < -10 else "EXPENSIVE" if pe_vs_peers > 10 else "FAIRLY VALUED"
-                        print(f'   P/E vs Peers: {pe_vs_peers:+.1f}% ({pe_assessment})')
+                        try:
+                            stock_pe = float(stock_data['P/E (TTM)'])
+                            peer_median_pe = peer_pe_values.median()
+                            pe_vs_peers = (stock_pe - peer_median_pe) / peer_median_pe * 100
+                            pe_assessment = "CHEAPER" if pe_vs_peers < -10 else "EXPENSIVE" if pe_vs_peers > 10 else "FAIRLY VALUED"
+                            print(f'   P/E vs Peers: {pe_vs_peers:+.1f}% ({pe_assessment})')
+                        except (ValueError, TypeError):
+                            pass
                 
                 # ROE comparison
                 if 'ROE' in numeric_peers.columns:
                     peer_roe_values = pd.to_numeric(peers_df['ROE'], errors='coerce').dropna()
                     if len(peer_roe_values) > 0 and pd.notna(stock_data['ROE']):
-                        peer_median_roe = peer_roe_values.median()
-                        roe_vs_peers = (stock_data['ROE'] - peer_median_roe) / peer_median_roe * 100
-                        roe_assessment = "SUPERIOR" if roe_vs_peers > 20 else "INFERIOR" if roe_vs_peers < -20 else "COMPARABLE"
-                        print(f'   ROE vs Peers: {roe_vs_peers:+.1f}% ({roe_assessment})')
+                        try:
+                            stock_roe = float(stock_data['ROE'])
+                            peer_median_roe = peer_roe_values.median()
+                            roe_vs_peers = (stock_roe - peer_median_roe) / peer_median_roe * 100
+                            roe_assessment = "SUPERIOR" if roe_vs_peers > 20 else "INFERIOR" if roe_vs_peers < -20 else "COMPARABLE"
+                            print(f'   ROE vs Peers: {roe_vs_peers:+.1f}% ({roe_assessment})')
+                        except (ValueError, TypeError):
+                            pass
         
         else:
             print(f'\n⚠️  No peers found for comparison')
@@ -247,32 +270,44 @@ class StockScreener:
         # Valuation
         pe = stock_data.get('P/E (TTM)')
         if pd.notna(pe):
-            if pe < 15:
-                factors.append("✅ Attractive valuation")
-            elif pe < 25:
-                factors.append("🟡 Reasonable valuation")  
-            else:
-                factors.append("⚠️ High valuation")
+            try:
+                pe_val = float(pe)
+                if pe_val < 15:
+                    factors.append("✅ Attractive valuation")
+                elif pe_val < 25:
+                    factors.append("🟡 Reasonable valuation")  
+                else:
+                    factors.append("⚠️ High valuation")
+            except (ValueError, TypeError):
+                pass
         
         # Profitability
         roe = stock_data.get('ROE')
         if pd.notna(roe):
-            if roe > 0.20:
-                factors.append("✅ Excellent profitability")
-            elif roe > 0.10:
-                factors.append("🟡 Good profitability")
-            else:
-                factors.append("⚠️ Low profitability")
+            try:
+                roe_val = float(roe)
+                if roe_val > 0.20:
+                    factors.append("✅ Excellent profitability")
+                elif roe_val > 0.10:
+                    factors.append("🟡 Good profitability")
+                else:
+                    factors.append("⚠️ Low profitability")
+            except (ValueError, TypeError):
+                pass
         
         # Growth
         growth = stock_data.get('RevenueGrowth')
         if pd.notna(growth):
-            if growth > 0.15:
-                factors.append("✅ Strong growth")
-            elif growth > 0.05:
-                factors.append("🟡 Moderate growth")
-            else:
-                factors.append("⚠️ Slow growth")
+            try:
+                growth_val = float(growth)
+                if growth_val > 0.15:
+                    factors.append("✅ Strong growth")
+                elif growth_val > 0.05:
+                    factors.append("🟡 Moderate growth")
+                else:
+                    factors.append("⚠️ Slow growth")
+            except (ValueError, TypeError):
+                pass
         
         for factor in factors:
             print(f'   {factor}')
