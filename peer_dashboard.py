@@ -312,112 +312,135 @@ def create_growth_rates_chart(tickers):
     
     return fig
 
-def create_kpi_tables(tickers):
-    """Create separate tables for each KPI showing all companies"""
+def create_growth_analysis_table(tickers):
+    """Create simple table with YoY, QoQ growth and last 4 quarters"""
     
-    # Get data for all tickers
-    ticker_data = {}
-    all_quarters = set()
+    all_data = []
     
     for ticker in tickers:
         historical_data = get_historical_metrics(ticker)
-        if historical_data and 'quarterly_data' in historical_data:
-            ticker_data[ticker] = historical_data
-            # Collect all quarters
-            for metric_name in ['Revenue', 'EBITDA', 'Net Income', 'Free Cash Flow', 'Basic EPS']:
-                if metric_name in historical_data['quarterly_data']:
-                    quarters = historical_data['quarterly_data'][metric_name].keys()
-                    all_quarters.update(quarters)
-    
-    if not ticker_data:
-        return [dbc.Alert("No historical data available for any tickers", color="warning")]
-    
-    # Sort quarters (most recent first)
-    sorted_quarters = sorted(all_quarters, reverse=True)[:5]  # Last 5 quarters
-    
-    # Create quarter labels
-    quarter_labels = ['Company']
-    for quarter_date in sorted_quarters:
-        if hasattr(quarter_date, 'strftime'):
-            quarter_num = (quarter_date.month - 1) // 3 + 1
-            quarter_label = f"{quarter_date.year}Q{quarter_num}"
-        else:
-            quarter_label = f"Q{len(quarter_labels)}"
-        quarter_labels.append(quarter_label)
-    
-    # Define KPIs to create tables for
-    kpis = {
-        'Revenue': ('Revenue', 'M', 1e6),
-        'EBITDA': ('EBITDA', 'M', 1e6), 
-        'Net Income': ('Net Income', 'M', 1e6),
-        'Free Cash Flow': ('Free Cash Flow', 'M', 1e6),
-        'Basic EPS': ('Basic EPS', '', 1)
-    }
-    
-    tables = []
-    
-    for kpi_name, (metric_key, unit_suffix, divisor) in kpis.items():
-        # Create data for this KPI
-        kpi_data = []
-        
-        for ticker in sorted(ticker_data.keys()):
-            historical_data = ticker_data[ticker]
-            row = {'Company': ticker}
+        if not historical_data or 'quarterly_data' not in historical_data:
+            continue
             
-            if metric_key in historical_data['quarterly_data']:
-                metric_dict = historical_data['quarterly_data'][metric_key]
+        quarterly_data = historical_data['quarterly_data']
+        
+        # Key metrics to analyze
+        metrics = {
+            'Revenue': 'Revenue', 
+            'Gross Profit': 'Gross Profit',
+            'EBITDA': 'EBITDA',
+            'Net Income': 'Net Income',
+            'Free Cash Flow': 'Free Cash Flow'
+        }
+        
+        for metric_name, metric_key in metrics.items():
+            if metric_key not in quarterly_data:
+                continue
                 
-                for i, quarter_date in enumerate(sorted_quarters):
-                    quarter_label = quarter_labels[i + 1]  # +1 because first col is Company
-                    
-                    if quarter_date in metric_dict:
-                        value = metric_dict[quarter_date]
-                        if unit_suffix == 'M':
-                            row[quarter_label] = f"${value/divisor:.1f}M"
-                        else:
-                            row[quarter_label] = f"${value:.2f}" if value != 0 else "$0.00"
-                    else:
-                        row[quarter_label] = "N/A"
+            metric_dict = quarterly_data[metric_key]
+            quarters = sorted(metric_dict.keys(), reverse=True)  # Most recent first
+            
+            if len(quarters) < 2:
+                continue  # Need at least 2 quarters for QoQ
+                
+            # Get current quarter (Q0) and previous quarters
+            current_q = quarters[0] if len(quarters) > 0 else None
+            prev_q = quarters[1] if len(quarters) > 1 else None  # Q-1 for QoQ
+            year_ago_q = quarters[4] if len(quarters) > 4 else None  # Q-4 for YoY
+            
+            # Create row
+            row = {
+                'Company': ticker,
+                'Metric': metric_name
+            }
+            
+            # Last 4 quarters
+            for i, quarter in enumerate(quarters[:4]):
+                quarter_num = (quarter.month - 1) // 3 + 1
+                quarter_label = f"{quarter.year}Q{quarter_num}"
+                value = metric_dict[quarter]
+                
+                if metric_name in ['Revenue', 'Gross Profit', 'EBITDA', 'Net Income', 'Free Cash Flow']:
+                    row[quarter_label] = f"${value/1e6:.1f}M"
+                else:
+                    row[quarter_label] = f"${value:.2f}"
+            
+            # QoQ Growth (current vs previous quarter)
+            if current_q and prev_q and prev_q in metric_dict and metric_dict[prev_q] != 0:
+                current_val = metric_dict[current_q]
+                prev_val = metric_dict[prev_q]
+                qoq_growth = ((current_val - prev_val) / abs(prev_val)) * 100
+                row['QoQ Growth %'] = f"{qoq_growth:+.1f}%"
             else:
-                # Fill with N/A if metric not available
-                for quarter_label in quarter_labels[1:]:
-                    row[quarter_label] = "N/A"
+                row['QoQ Growth %'] = "N/A"
             
-            kpi_data.append(row)
-        
-        # Create DataFrame and table for this KPI
-        if kpi_data:
-            df = pd.DataFrame(kpi_data)
+            # YoY Growth (current vs same quarter last year)
+            if current_q and year_ago_q and year_ago_q in metric_dict and metric_dict[year_ago_q] != 0:
+                current_val = metric_dict[current_q]
+                year_ago_val = metric_dict[year_ago_q]
+                yoy_growth = ((current_val - year_ago_val) / abs(year_ago_val)) * 100
+                row['YoY Growth %'] = f"{yoy_growth:+.1f}%"
+            else:
+                row['YoY Growth %'] = "N/A"
             
-            table = dash_table.DataTable(
-                data=df.to_dict('records'),
-                columns=[{"name": col, "id": col} for col in df.columns],
-                sort_action="native",
-                style_cell={
-                    'textAlign': 'center',
-                    'padding': '8px',
-                    'fontFamily': 'Arial, sans-serif',
-                    'fontSize': '11px',
-                },
-                style_header={
-                    'backgroundColor': 'rgb(240, 240, 240)',
-                    'fontWeight': 'bold',
-                    'textAlign': 'center'
-                },
-                style_table={'overflowX': 'auto', 'marginBottom': '20px'}
-            )
-            
-            # Add this KPI table to the list
-            tables.append(
-                dbc.Card([
-                    dbc.CardHeader([
-                        html.H5(f"📊 {kpi_name} - All Companies", className="mb-0")
-                    ]),
-                    dbc.CardBody([table])
-                ], className="mb-3")
-            )
+            all_data.append(row)
     
-    return tables
+    if not all_data:
+        return dbc.Alert("No historical data available for growth analysis", color="warning")
+    
+    # Create DataFrame
+    df = pd.DataFrame(all_data)
+    
+    # Create table
+    table = dash_table.DataTable(
+        data=df.to_dict('records'),
+        columns=[{"name": col, "id": col} for col in df.columns],
+        sort_action="native",
+        style_cell={
+            'textAlign': 'center',
+            'padding': '8px',
+            'fontFamily': 'Arial, sans-serif',
+            'fontSize': '11px',
+        },
+        style_header={
+            'backgroundColor': 'rgb(230, 230, 230)',
+            'fontWeight': 'bold',
+            'textAlign': 'center'
+        },
+        style_data_conditional=[
+            # Green for positive growth
+            {
+                'if': {'column_id': 'QoQ Growth %', 'filter_query': '{QoQ Growth %} contains "+"'},
+                'color': 'green',
+                'fontWeight': 'bold'
+            },
+            {
+                'if': {'column_id': 'YoY Growth %', 'filter_query': '{YoY Growth %} contains "+"'},
+                'color': 'green', 
+                'fontWeight': 'bold'
+            },
+            # Red for negative growth
+            {
+                'if': {'column_id': 'QoQ Growth %', 'filter_query': '{QoQ Growth %} contains "-"'},
+                'color': 'red',
+                'fontWeight': 'bold'
+            },
+            {
+                'if': {'column_id': 'YoY Growth %', 'filter_query': '{YoY Growth %} contains "-"'},
+                'color': 'red',
+                'fontWeight': 'bold'
+            }
+        ],
+        style_table={'overflowX': 'auto'}
+    )
+    
+    return dbc.Card([
+        dbc.CardHeader([
+            html.H4("📊 Growth Analysis: YoY, QoQ & Last 4 Quarters", className="mb-0"),
+            html.P("Quarter-over-Quarter, Year-over-Year growth rates and recent quarterly performance", className="text-muted mb-0 mt-1")
+        ]),
+        dbc.CardBody([table])
+    ])
 
 def create_historical_trends_table(tickers):
     """Create a comprehensive table with historical trends and margins for all tickers"""
@@ -779,20 +802,13 @@ def update_tab_content(active_tab):
             return [
                 dbc.Row([
                     dbc.Col([
-                        html.H3("📊 Historical Financial Data"),
-                        html.P("Quarterly financial metrics in table format."),
+                        html.H3("📊 Quarterly Growth Analysis"),
+                        html.P("YoY, QoQ growth rates and last 4 quarters performance."),
                     ])
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        html.H4("📈 Growth Rates Summary"),
-                        create_historical_trends_table(tickers)
-                    ], width=12)
-                ], className="mb-4"),
-                dbc.Row([
-                    dbc.Col([
-                        html.H4("📊 KPI Tables - Each Metric by Company"),
-                        html.Div(create_kpi_tables(tickers))
+                        create_growth_analysis_table(tickers)
                     ], width=12)
                 ])
             ]
