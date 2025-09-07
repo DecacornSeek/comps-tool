@@ -1791,17 +1791,39 @@ def create_score_card(title, score, max_score="", color="primary", details=[]):
     ], className="mb-3", style=card_style)
 
 def create_metrics_section(title, metrics):
-    """Create a metrics section with progress bars"""
+    """Create a metrics section with intelligent progress bars"""
     
     metric_items = []
-    for name, value, percentage in metrics:
-        # Determine color based on percentage
-        if percentage >= 80:
-            color = "success"
-        elif percentage >= 60:
-            color = "warning" 
-        else:
-            color = "danger"
+    for name, value, percentage, metric_type in metrics:
+        # Intelligent color determination based on metric type and percentage
+        if metric_type == 'profitability':  # Higher = Better (ROE, ROIC, NPE)
+            if percentage >= 75:
+                color = "success"  # Excellent
+            elif percentage >= 50:
+                color = "info"     # Good  
+            elif percentage >= 25:
+                color = "warning"  # Average
+            else:
+                color = "danger"   # Poor
+        elif metric_type == 'valuation':  # Lower = Better (PE, PB, PS, EV ratios)
+            if percentage >= 75:
+                color = "success"  # Excellent (low valuation)
+            elif percentage >= 50:
+                color = "info"     # Good
+            elif percentage >= 25:
+                color = "warning"  # Average  
+            else:
+                color = "danger"   # Poor (high valuation)
+        else:  # Default behavior
+            if percentage >= 70:
+                color = "success"
+            elif percentage >= 40:
+                color = "warning"
+            else:
+                color = "danger"
+        
+        # Ensure percentage is never below 5% to avoid invisible bars
+        display_percentage = max(5, min(100, percentage))
             
         metric_items.append(
             html.Div([
@@ -1814,7 +1836,7 @@ def create_metrics_section(title, metrics):
                     ], width=5)
                 ], className="mb-1"),
                 dbc.Progress(
-                    value=percentage, 
+                    value=display_percentage, 
                     color=color, 
                     className="mb-3", 
                     style={"height": "12px", "borderRadius": "6px"}
@@ -2446,81 +2468,138 @@ def get_real_nvidia_metrics(ticker):
         # 1. Extended Profitability Check: NPE (Quarterly & Yearly), Valuation Ratios
         profitability_section = []
         
-        # ROE (existing)
+        # Get quarterly financials once for reuse
+        quarterly_financials = stock.quarterly_financials
+        
+        # === PROFITABILITY METRICS (Higher = Better) ===
+        
+        # ROE (TTM only - quarterly ROE not meaningful)
         if 'returnOnEquity' in info and info['returnOnEquity'] is not None:
             roe = info['returnOnEquity'] * 100
-            percentage = min(100, max(0, roe * 3))  # Scale 0-33% as 0-100%
-            profitability_section.append(('Return on Equity (ROE)', f'{roe:.1f}%', percentage))
+            # Scale: 0-30% ROE as 0-100%
+            percentage = min(100, max(0, (roe / 30) * 100))
+            profitability_section.append(('Return on Equity (ROE) - TTM', f'{roe:.1f}%', percentage, 'profitability'))
             
-        # ROIC (existing)
+        # ROIC (TTM only - quarterly ROIC not standard)
         if roic is not None:
-            percentage = min(100, max(0, roic * 4))  # Scale 0-25% as 0-100%
-            profitability_section.append(('Return on Invested Capital (ROIC)', f'{roic:.1f}%', percentage))
+            # Scale: 0-25% ROIC as 0-100%
+            percentage = min(100, max(0, (roic / 25) * 100))
+            profitability_section.append(('Return on Invested Capital (ROIC) - TTM', f'{roic:.1f}%', percentage, 'profitability'))
         
-        # NPE (Net Profit Margin) - Quarterly and Yearly
+        # NPE (Net Profit Margin) - Both Quarterly and Yearly
         try:
-            # Get quarterly financials for quarterly NPE
-            quarterly_financials = stock.quarterly_financials
-            
             # Quarterly NPE
             if not quarterly_financials.empty and 'Net Income' in quarterly_financials.index and 'Total Revenue' in quarterly_financials.index:
                 net_income_q = quarterly_financials.loc['Net Income'].dropna()
                 revenue_q = quarterly_financials.loc['Total Revenue'].dropna()
                 if len(net_income_q) > 0 and len(revenue_q) > 0:
                     npe_quarterly = (net_income_q.iloc[0] / revenue_q.iloc[0]) * 100
-                    percentage = min(100, max(0, npe_quarterly * 5))
-                    profitability_section.append(('NPE - Current Quarter', f'{npe_quarterly:.1f}%', percentage))
+                    # Scale: 0-20% NPE as 0-100%
+                    percentage = min(100, max(0, (npe_quarterly / 20) * 100))
+                    profitability_section.append(('NPE - Current Quarter', f'{npe_quarterly:.1f}%', percentage, 'profitability'))
             
-            # Yearly NPE (TTM or Annual)
+            # Yearly NPE (TTM preferred)
             if 'profitMargins' in info and info['profitMargins'] is not None:
                 npe_yearly = info['profitMargins'] * 100
-                percentage = min(100, max(0, npe_yearly * 5))
-                profitability_section.append(('NPE - Trailing 12M', f'{npe_yearly:.1f}%', percentage))
+                percentage = min(100, max(0, (npe_yearly / 20) * 100))
+                profitability_section.append(('NPE - Trailing 12M', f'{npe_yearly:.1f}%', percentage, 'profitability'))
             elif not financials.empty and 'Net Income' in financials.index and 'Total Revenue' in financials.index:
                 # Calculate from annual data if TTM not available
                 net_income_a = financials.loc['Net Income'].dropna()
                 revenue_a = financials.loc['Total Revenue'].dropna()
                 if len(net_income_a) > 0 and len(revenue_a) > 0:
                     npe_annual = (net_income_a.iloc[0] / revenue_a.iloc[0]) * 100
-                    percentage = min(100, max(0, npe_annual * 5))
-                    profitability_section.append(('NPE - Annual', f'{npe_annual:.1f}%', percentage))
+                    percentage = min(100, max(0, (npe_annual / 20) * 100))
+                    profitability_section.append(('NPE - Annual', f'{npe_annual:.1f}%', percentage, 'profitability'))
         except Exception as e:
             print(f"Error calculating NPE metrics: {e}")
         
-        # PE Ratio (Quarterly & Yearly)
-        if 'trailingPE' in info and info['trailingPE'] is not None:
-            pe_ttm = info['trailingPE']
-            percentage = min(100, max(0, 100 - (pe_ttm * 2)))  # Lower PE = higher score
-            profitability_section.append(('PE Ratio - TTM', f'{pe_ttm:.1f}', percentage))
+        # === VALUATION METRICS (Lower = Better) ===
+        
+        # PE Ratio - Both Current and Forward
+        try:
+            # Calculate quarterly PE if we have quarterly EPS
+            if not quarterly_financials.empty and 'Basic EPS' in quarterly_financials.index:
+                basic_eps_q = quarterly_financials.loc['Basic EPS'].dropna()
+                if len(basic_eps_q) > 0 and basic_eps_q.iloc[0] > 0:
+                    current_price_num = float(info.get('currentPrice', info.get('regularMarketPrice', 0)))
+                    if current_price_num > 0:
+                        pe_quarterly = current_price_num / (basic_eps_q.iloc[0] * 4)  # Annualize quarterly EPS
+                        # Scale: PE 5-50 as 100-0% (lower PE = higher score)
+                        percentage = min(100, max(0, 100 - ((pe_quarterly - 5) / 45) * 100))
+                        profitability_section.append(('PE Ratio - Quarterly (Est)', f'{pe_quarterly:.1f}', percentage, 'valuation'))
+        except Exception as e:
+            print(f"Error calculating quarterly PE: {e}")
             
-        if 'forwardPE' in info and info['forwardPE'] is not None:
+        # PE TTM
+        if 'trailingPE' in info and info['trailingPE'] is not None and info['trailingPE'] > 0:
+            pe_ttm = info['trailingPE']
+            percentage = min(100, max(0, 100 - ((pe_ttm - 5) / 45) * 100))
+            profitability_section.append(('PE Ratio - TTM', f'{pe_ttm:.1f}', percentage, 'valuation'))
+            
+        # PE Forward
+        if 'forwardPE' in info and info['forwardPE'] is not None and info['forwardPE'] > 0:
             pe_forward = info['forwardPE']
-            percentage = min(100, max(0, 100 - (pe_forward * 2)))
-            profitability_section.append(('PE Ratio - Forward', f'{pe_forward:.1f}', percentage))
+            percentage = min(100, max(0, 100 - ((pe_forward - 5) / 45) * 100))
+            profitability_section.append(('PE Ratio - Forward', f'{pe_forward:.1f}', percentage, 'valuation'))
         
-        # PB Ratio (Price-to-Book)
-        if 'priceToBook' in info and info['priceToBook'] is not None:
+        # PB Ratio - Both Quarterly and TTM estimates
+        try:
+            current_price_num = float(info.get('currentPrice', info.get('regularMarketPrice', 0)))
+            
+            # Quarterly Book Value estimate
+            if not quarterly_financials.empty and 'Total Stockholder Equity' in quarterly_financials.index and current_price_num > 0:
+                equity_q = quarterly_financials.loc['Total Stockholder Equity'].dropna()
+                shares_outstanding = info.get('sharesOutstanding', 0)
+                if len(equity_q) > 0 and shares_outstanding > 0:
+                    book_value_per_share_q = equity_q.iloc[0] / shares_outstanding
+                    pb_quarterly = current_price_num / book_value_per_share_q
+                    # Scale: PB 0.5-5 as 100-0%
+                    percentage = min(100, max(0, 100 - ((pb_quarterly - 0.5) / 4.5) * 100))
+                    profitability_section.append(('PB Ratio - Current Quarter', f'{pb_quarterly:.1f}', percentage, 'valuation'))
+        except Exception as e:
+            print(f"Error calculating quarterly PB: {e}")
+            
+        # PB TTM
+        if 'priceToBook' in info and info['priceToBook'] is not None and info['priceToBook'] > 0:
             pb_ratio = info['priceToBook']
-            percentage = min(100, max(0, 100 - (pb_ratio * 20)))  # Lower PB = higher score
-            profitability_section.append(('PB Ratio', f'{pb_ratio:.1f}', percentage))
+            percentage = min(100, max(0, 100 - ((pb_ratio - 0.5) / 4.5) * 100))
+            profitability_section.append(('PB Ratio - TTM', f'{pb_ratio:.1f}', percentage, 'valuation'))
         
-        # PS Ratio (Price-to-Sales)
+        # PS Ratio - Both Quarterly and TTM
+        try:
+            # Quarterly PS estimate
+            if not quarterly_financials.empty and 'Total Revenue' in quarterly_financials.index and current_price_num > 0:
+                revenue_q = quarterly_financials.loc['Total Revenue'].dropna()
+                shares_outstanding = info.get('sharesOutstanding', 0)
+                if len(revenue_q) > 0 and shares_outstanding > 0:
+                    revenue_per_share_q = (revenue_q.iloc[0] * 4) / shares_outstanding  # Annualize
+                    ps_quarterly = current_price_num / revenue_per_share_q
+                    # Scale: PS 0.5-10 as 100-0%
+                    percentage = min(100, max(0, 100 - ((ps_quarterly - 0.5) / 9.5) * 100))
+                    profitability_section.append(('PS Ratio - Quarterly (Est)', f'{ps_quarterly:.1f}', percentage, 'valuation'))
+        except Exception as e:
+            print(f"Error calculating quarterly PS: {e}")
+            
+        # PS TTM
         if 'priceToSalesTrailing12Months' in info and info['priceToSalesTrailing12Months'] is not None:
             ps_ratio = info['priceToSalesTrailing12Months']
-            percentage = min(100, max(0, 100 - (ps_ratio * 10)))  # Lower PS = higher score
-            profitability_section.append(('PS Ratio - TTM', f'{ps_ratio:.1f}', percentage))
+            percentage = min(100, max(0, 100 - ((ps_ratio - 0.5) / 9.5) * 100))
+            profitability_section.append(('PS Ratio - TTM', f'{ps_ratio:.1f}', percentage, 'valuation'))
         
-        # EV/Revenue
+        # EV/Revenue - Both Quarterly and TTM estimates 
         if 'enterpriseToRevenue' in info and info['enterpriseToRevenue'] is not None:
             ev_revenue = info['enterpriseToRevenue']
-            percentage = min(100, max(0, 100 - (ev_revenue * 10)))
-            profitability_section.append(('EV/Revenue', f'{ev_revenue:.1f}', percentage))
+            # Scale: EV/Revenue 0.5-10 as 100-0%
+            percentage = min(100, max(0, 100 - ((ev_revenue - 0.5) / 9.5) * 100))
+            profitability_section.append(('EV/Revenue - TTM', f'{ev_revenue:.1f}', percentage, 'valuation'))
         
-        # EV/EBITDA
-        if 'enterpriseToEbitda' in info and info['enterpriseToEbitda'] is not None:
+        # EV/EBITDA - Both Quarterly and TTM estimates
+        if 'enterpriseToEbitda' in info and info['enterpriseToEbitda'] is not None and info['enterpriseToEbitda'] > 0:
             ev_ebitda = info['enterpriseToEbitda']
-            percentage = min(100, max(0, 100 - (ev_ebitda * 5)))
-            profitability_section.append(('EV/EBITDA', f'{ev_ebitda:.1f}', percentage))
+            # Scale: EV/EBITDA 5-50 as 100-0%  
+            percentage = min(100, max(0, 100 - ((ev_ebitda - 5) / 45) * 100))
+            profitability_section.append(('EV/EBITDA - TTM', f'{ev_ebitda:.1f}', percentage, 'valuation'))
             
         if profitability_section:
             detailed_metrics.append(('Profitability Check', profitability_section))
@@ -2529,9 +2608,9 @@ def get_real_nvidia_metrics(ticker):
         stock_section = []
         if annual_performance != 0:
             performance_percentage = min(100, max(0, (annual_performance + 50) * 1.5))  # Scale -50% to 50% as 0-100%
-            stock_section.append(('Performance per Year', f'{annual_performance:.1f}%', performance_percentage))
+            stock_section.append(('Performance per Year', f'{annual_performance:.1f}%', performance_percentage, 'profitability'))
             
-        stock_section.append(('Stock Stability', f'{stock_stability_score:.1f}%', stock_stability_score))
+        stock_section.append(('Stock Stability', f'{stock_stability_score:.1f}%', stock_stability_score, 'profitability'))
         
         if stock_section:
             detailed_metrics.append(('Stock Development', stock_section))
@@ -2580,20 +2659,20 @@ def get_real_nvidia_metrics(ticker):
         
         if ebit_debt_ratio is not None:
             percentage = min(100, max(0, ebit_debt_ratio * 2))  # Scale 0-50% as 0-100%
-            security_section.append(('EBIT / Debt Ratio', f'{ebit_debt_ratio:.1f}%', percentage))
+            security_section.append(('EBIT / Debt Ratio', f'{ebit_debt_ratio:.1f}%', percentage, 'profitability'))
         
         if interest_coverage is not None:
             percentage = min(100, max(0, min(interest_coverage * 10, 100)))  # Scale 0-10x as 0-100%
-            security_section.append(('EBIT Interest Coverage', f'{interest_coverage:.1f}x', percentage))
+            security_section.append(('EBIT Interest Coverage', f'{interest_coverage:.1f}x', percentage, 'profitability'))
             
         if equity_debt_ratio is not None:
             percentage = min(100, max(0, equity_debt_ratio))  # Scale 0-100% as 0-100%
-            security_section.append(('Equity / Debt Ratio', f'{equity_debt_ratio:.1f}%', percentage))
+            security_section.append(('Equity / Debt Ratio', f'{equity_debt_ratio:.1f}%', percentage, 'profitability'))
         elif 'debtToEquity' in info and info['debtToEquity'] is not None:
             # Fallback: show debt-to-equity (inverse relationship)
             debt_equity = info['debtToEquity']
             percentage = max(0, 100 - min(debt_equity * 5, 100))  # Lower debt = better
-            security_section.append(('Debt / Equity Ratio', f'{debt_equity:.2f}', percentage))
+            security_section.append(('Debt / Equity Ratio', f'{debt_equity:.2f}', percentage, 'valuation'))
             
         if security_section:
             detailed_metrics.append(('Security and Balance', security_section))
