@@ -4,21 +4,53 @@ from typing import Any, Dict, List, Optional
 import yfinance as yf
 
 
-# Feste Spaltenreihenfolge gemäß Spezifikation
+# Erweiterte Spaltenreihenfolge mit zusätzlichen KPIs
 COLUMNS: List[str] = [
 	"Ticker",
 	"Price",
 	"MarketCap",
+	"Enterprise Value",
 	"P/E (TTM)",
 	"P/E (Fwd)",
 	"P/B",
+	"P/S",
 	"EV/EBITDA",
+	"EV/Revenue",
 	"ProfitMargin",
+	"OperatingMargin",
+	"GrossMargin",
 	"RevenueGrowth",
+	"EarningsGrowth",
 	"EPS (TTM)",
+	"EPS (Fwd)",
+	"ROE",
+	"ROA",
+	"ROIC",
+	"Free Cash Flow",
+	"FCF Yield",
 	"Beta",
 	"DebtToEquity",
 	"CurrentRatio",
+	"QuickRatio",
+	"InterestCoverage",
+	"DividendYield",
+	"PayoutRatio",
+	"BookValuePerShare",
+	"TangibleBookValue",
+	"52W High",
+	"52W Low",
+	"52W Range %",
+	"Average Volume",
+	"Float Shares",
+	"Shares Outstanding",
+	"Insider Ownership",
+	"Institutional Ownership",
+	"Short Ratio",
+	"PEG Ratio",
+	"Industry",
+	"Sector",
+	"Country",
+	"Employees",
 ]
 
 
@@ -84,20 +116,76 @@ def fetch_metrics_for_ticker(ticker: str) -> Dict[str, Any]:
 		if price is None:
 			price = _safe_get(info, "regularMarketPrice")
 
+		# Berechne abgeleitete Metriken
+		market_cap = _coerce_float(_safe_get(info, "marketCap"))
+		enterprise_value = _coerce_float(_safe_get(info, "enterpriseValue"))
+		total_revenue = _coerce_float(_safe_get(info, "totalRevenue"))
+		free_cash_flow = _coerce_float(_safe_get(info, "freeCashflow"))
+		shares_outstanding = _coerce_float(_safe_get(info, "sharesOutstanding"))
+		fifty_two_week_high = _coerce_float(_safe_get(info, "fiftyTwoWeekHigh"))
+		fifty_two_week_low = _coerce_float(_safe_get(info, "fiftyTwoWeekLow"))
+		
+		# FCF Yield berechnen
+		fcf_yield = None
+		if free_cash_flow and market_cap:
+			fcf_yield = free_cash_flow / market_cap
+			
+		# 52W Range % berechnen
+		range_percent = None
+		if fifty_two_week_high and fifty_two_week_low and price:
+			range_percent = (price - fifty_two_week_low) / (fifty_two_week_high - fifty_two_week_low)
+		
+		# EV/Revenue berechnen
+		ev_revenue = None
+		if enterprise_value and total_revenue:
+			ev_revenue = enterprise_value / total_revenue
+
 		row.update(
 			{
 				"Price": _coerce_float(price),
-				"MarketCap": _coerce_float(_safe_get(info, "marketCap")),
+				"MarketCap": market_cap,
+				"Enterprise Value": enterprise_value,
 				"P/E (TTM)": _coerce_float(_safe_get(info, "trailingPE")),
 				"P/E (Fwd)": _coerce_float(_safe_get(info, "forwardPE")),
 				"P/B": _coerce_float(_safe_get(info, "priceToBook")),
+				"P/S": _coerce_float(_safe_get(info, "priceToSalesTrailing12Months")),
 				"EV/EBITDA": _coerce_float(_safe_get(info, "enterpriseToEbitda")),
+				"EV/Revenue": ev_revenue,
 				"ProfitMargin": _coerce_float(_safe_get(info, "profitMargins")),
+				"OperatingMargin": _coerce_float(_safe_get(info, "operatingMargins")),
+				"GrossMargin": _coerce_float(_safe_get(info, "grossMargins")),
 				"RevenueGrowth": _coerce_float(_safe_get(info, "revenueGrowth")),
+				"EarningsGrowth": _coerce_float(_safe_get(info, "earningsGrowth")),
 				"EPS (TTM)": _coerce_float(_safe_get(info, "trailingEps")),
+				"EPS (Fwd)": _coerce_float(_safe_get(info, "forwardEps")),
+				"ROE": _coerce_float(_safe_get(info, "returnOnEquity")),
+				"ROA": _coerce_float(_safe_get(info, "returnOnAssets")),
+				"ROIC": _coerce_float(_safe_get(info, "returnOnInvestedCapital")),
+				"Free Cash Flow": free_cash_flow,
+				"FCF Yield": fcf_yield,
 				"Beta": _coerce_float(_safe_get(info, "beta")),
 				"DebtToEquity": _coerce_float(_safe_get(info, "debtToEquity")),
 				"CurrentRatio": _coerce_float(_safe_get(info, "currentRatio")),
+				"QuickRatio": _coerce_float(_safe_get(info, "quickRatio")),
+				"InterestCoverage": _coerce_float(_safe_get(info, "interestCoverage")),
+				"DividendYield": _coerce_float(_safe_get(info, "dividendYield")),
+				"PayoutRatio": _coerce_float(_safe_get(info, "payoutRatio")),
+				"BookValuePerShare": _coerce_float(_safe_get(info, "bookValue")),
+				"TangibleBookValue": _coerce_float(_safe_get(info, "tangibleBookValue")),
+				"52W High": fifty_two_week_high,
+				"52W Low": fifty_two_week_low,
+				"52W Range %": range_percent,
+				"Average Volume": _coerce_float(_safe_get(info, "averageVolume")),
+				"Float Shares": _coerce_float(_safe_get(info, "floatShares")),
+				"Shares Outstanding": shares_outstanding,
+				"Insider Ownership": _coerce_float(_safe_get(info, "heldPercentInsiders")),
+				"Institutional Ownership": _coerce_float(_safe_get(info, "heldPercentInstitutions")),
+				"Short Ratio": _coerce_float(_safe_get(info, "shortRatio")),
+				"PEG Ratio": _coerce_float(_safe_get(info, "pegRatio")),
+				"Industry": _safe_get(info, "industry"),
+				"Sector": _safe_get(info, "sector"),
+				"Country": _safe_get(info, "country"),
+				"Employees": _coerce_float(_safe_get(info, "fullTimeEmployees")),
 			}
 		)
 
