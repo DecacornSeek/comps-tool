@@ -454,8 +454,7 @@ def create_chart_data_table(tickers):
                 'color': 'green',
             } for col in quarter_labels
         ],
-        style_table={'overflowX': 'auto'},
-        sort_action="native"
+        style_table={'overflowX': 'auto'}
     )
     
     return dbc.Card([
