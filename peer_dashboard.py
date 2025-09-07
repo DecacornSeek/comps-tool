@@ -630,6 +630,207 @@ def create_metric_tables(tickers):
     
     return tables
 
+def create_professional_metrics_tables(tickers):
+    """Create professional investment banking style analysis tables"""
+    
+    # Get basic peer data for current metrics
+    try:
+        peer_df = pd.read_csv('/home/user/webapp/zeta_adtech_analysis_enhanced.csv')
+    except:
+        return [dbc.Alert("Peer comparison data not available", color="warning")]
+    
+    # Filter to our tickers
+    peer_df = peer_df[peer_df['Ticker'].isin(tickers)]
+    
+    if peer_df.empty:
+        return [dbc.Alert("No peer data available for selected tickers", color="warning")]
+    
+    tables = []
+    
+    # 1. EV/Revenue & EV/EBITDA Table
+    ev_metrics = ['EV/Revenue', 'EV/EBITDA', 'P/S', 'P/E (TTM)', 'P/B']
+    ev_table_data = []
+    
+    for _, row in peer_df.iterrows():
+        ticker_row = {'Company': row['Ticker']}
+        
+        for metric in ev_metrics:
+            if metric in row and pd.notna(row[metric]):
+                value = row[metric]
+                if metric in ['EV/Revenue', 'EV/EBITDA', 'P/S']:
+                    ticker_row[metric] = f"{value:.1f}x"
+                elif metric in ['P/E (TTM)']:
+                    ticker_row[metric] = f"{value:.1f}x" if value > 0 else "N/A"
+                elif metric == 'P/B':
+                    ticker_row[metric] = f"{value:.1f}x"
+            else:
+                ticker_row[metric] = "N/A"
+        
+        ev_table_data.append(ticker_row)
+    
+    if ev_table_data:
+        df = pd.DataFrame(ev_table_data)
+        table = dash_table.DataTable(
+            data=df.to_dict('records'),
+            columns=[{"name": col, "id": col} for col in df.columns],
+            sort_action="native",
+            style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+            style_header={'backgroundColor': 'rgb(230, 230, 250)', 'fontWeight': 'bold'},
+            style_table={'overflowX': 'auto'}
+        )
+        
+        tables.append(
+            dbc.Card([
+                dbc.CardHeader([html.H5("💼 Enterprise Value & Valuation Multiples", className="mb-0")]),
+                dbc.CardBody([table])
+            ], className="mb-3")
+        )
+    
+    # 2. Profitability Ratios (ROE, ROA, ROIC)
+    profitability_metrics = ['ROE', 'ROA', 'ROIC', 'ProfitMargin', 'OperatingMargin']
+    prof_table_data = []
+    
+    for _, row in peer_df.iterrows():
+        ticker_row = {'Company': row['Ticker']}
+        
+        for metric in profitability_metrics:
+            if metric in row and pd.notna(row[metric]):
+                value = row[metric]
+                if metric in ['ROE', 'ROA', 'ROIC', 'ProfitMargin', 'OperatingMargin']:
+                    ticker_row[metric] = f"{value:.1%}" if abs(value) < 10 else f"{value*100:.1f}%"
+            else:
+                ticker_row[metric] = "N/A"
+        
+        prof_table_data.append(ticker_row)
+    
+    if prof_table_data:
+        df = pd.DataFrame(prof_table_data)
+        table = dash_table.DataTable(
+            data=df.to_dict('records'),
+            columns=[{"name": col, "id": col} for col in df.columns],
+            sort_action="native",
+            style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+            style_header={'backgroundColor': 'rgb(240, 250, 240)', 'fontWeight': 'bold'},
+            style_table={'overflowX': 'auto'}
+        )
+        
+        tables.append(
+            dbc.Card([
+                dbc.CardHeader([html.H5("📊 Profitability & Efficiency Ratios", className="mb-0")]),
+                dbc.CardBody([table])
+            ], className="mb-3")
+        )
+    
+    # 3. Relative Valuation Analysis
+    valuation_metrics = ['P/E (TTM)', 'P/S', 'EV/Revenue', 'EV/EBITDA', 'P/B']
+    rel_val_data = []
+    
+    # Calculate percentiles and sector stats
+    sector_stats = {}
+    for metric in valuation_metrics:
+        if metric in peer_df.columns:
+            values = peer_df[metric].dropna()
+            if len(values) > 0:
+                sector_stats[metric] = {
+                    'median': values.median(),
+                    'mean': values.mean(),
+                    'min': values.min(),
+                    'max': values.max()
+                }
+    
+    for _, row in peer_df.iterrows():
+        ticker_row = {'Company': row['Ticker']}
+        
+        for metric in valuation_metrics:
+            if metric in row and pd.notna(row[metric]) and metric in sector_stats:
+                value = row[metric]
+                median = sector_stats[metric]['median']
+                
+                # Calculate premium/discount vs median
+                if median > 0:
+                    premium_discount = ((value - median) / median) * 100
+                    ticker_row[f'{metric} vs Median'] = f"{premium_discount:+.0f}%"
+                    
+                    # Determine percentile ranking
+                    values = peer_df[metric].dropna()
+                    percentile = (values < value).sum() / len(values) * 100
+                    ticker_row[f'{metric} Percentile'] = f"{percentile:.0f}th"
+                else:
+                    ticker_row[f'{metric} vs Median'] = "N/A"
+                    ticker_row[f'{metric} Percentile'] = "N/A"
+            else:
+                ticker_row[f'{metric} vs Median'] = "N/A"
+                ticker_row[f'{metric} Percentile'] = "N/A"
+        
+        rel_val_data.append(ticker_row)
+    
+    if rel_val_data:
+        df = pd.DataFrame(rel_val_data)
+        
+        # Create conditional styling for relative valuation
+        style_conditions = []
+        for metric in valuation_metrics:
+            vs_median_col = f'{metric} vs Median'
+            if vs_median_col in df.columns:
+                # Green for discount (negative %), Red for premium (positive %)
+                style_conditions.extend([
+                    {'if': {'column_id': vs_median_col, 'filter_query': f'{{{vs_median_col}}} contains "-"'}, 
+                     'color': 'green', 'fontWeight': 'bold'},
+                    {'if': {'column_id': vs_median_col, 'filter_query': f'{{{vs_median_col}}} contains "+"'}, 
+                     'color': 'red', 'fontWeight': 'bold'}
+                ])
+        
+        table = dash_table.DataTable(
+            data=df.to_dict('records'),
+            columns=[{"name": col, "id": col} for col in df.columns],
+            sort_action="native",
+            style_cell={'textAlign': 'center', 'padding': '6px', 'fontSize': '10px'},
+            style_header={'backgroundColor': 'rgb(250, 240, 230)', 'fontWeight': 'bold'},
+            style_data_conditional=style_conditions,
+            style_table={'overflowX': 'auto'}
+        )
+        
+        tables.append(
+            dbc.Card([
+                dbc.CardHeader([
+                    html.H5("📈 Relative Valuation Analysis", className="mb-0"),
+                    html.Small("Green = Trading at discount to peers, Red = Trading at premium to peers", className="text-muted")
+                ]),
+                dbc.CardBody([table])
+            ], className="mb-3")
+        )
+    
+    # Add sector summary statistics
+    if sector_stats:
+        summary_data = []
+        for metric, stats in sector_stats.items():
+            summary_data.append({
+                'Metric': metric,
+                'Median': f"{stats['median']:.1f}x",
+                'Mean': f"{stats['mean']:.1f}x", 
+                'Min': f"{stats['min']:.1f}x",
+                'Max': f"{stats['max']:.1f}x"
+            })
+        
+        if summary_data:
+            df = pd.DataFrame(summary_data)
+            table = dash_table.DataTable(
+                data=df.to_dict('records'),
+                columns=[{"name": col, "id": col} for col in df.columns],
+                style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+                style_header={'backgroundColor': 'rgb(245, 245, 245)', 'fontWeight': 'bold'},
+                style_table={'overflowX': 'auto'}
+            )
+            
+            tables.append(
+                dbc.Card([
+                    dbc.CardHeader([html.H5("📋 Sector Valuation Summary", className="mb-0")]),
+                    dbc.CardBody([table])
+                ], className="mb-3")
+            )
+    
+    return tables
+
 def create_historical_trends_table(tickers):
     """Create a comprehensive table with historical trends and margins for all tickers"""
     trends_data = []
@@ -907,6 +1108,7 @@ def create_layout():
     # Add historical analysis tabs
     tabs.append(dbc.Tab(label="📈 Historical Trends", tab_id="historical_trends"))
     tabs.append(dbc.Tab(label="📊 Growth Analysis", tab_id="growth_analysis"))
+    tabs.append(dbc.Tab(label="💼 Professional Analysis", tab_id="professional_analysis"))
     
     layout = dbc.Container([
         dbc.Row([
@@ -1024,6 +1226,25 @@ def update_tab_content(active_tab):
             ]
         else:
             return [dbc.Alert("No tickers found for growth analysis", color="warning")]
+    
+    elif active_tab == "professional_analysis":
+        tickers = df['Ticker'].tolist() if 'Ticker' in df.columns else []
+        if tickers:
+            return [
+                dbc.Row([
+                    dbc.Col([
+                        html.H3("💼 Investment Banking Style Analysis"),
+                        html.P("Professional-grade valuation multiples, profitability ratios, and relative valuation analysis."),
+                    ])
+                ]),
+                dbc.Row([
+                    dbc.Col([
+                        html.Div(create_professional_metrics_tables(tickers))
+                    ], width=12)
+                ])
+            ]
+        else:
+            return [dbc.Alert("No tickers found for professional analysis", color="warning")]
     
     return dbc.Alert("Tab not found", color="danger")
 
