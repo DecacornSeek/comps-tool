@@ -312,135 +312,191 @@ def create_growth_rates_chart(tickers):
     
     return fig
 
-def create_growth_analysis_table(tickers):
-    """Create simple table with YoY, QoQ growth and last 4 quarters"""
+def create_metric_tables(tickers):
+    """Create separate tables for each metric + margin tables"""
     
-    all_data = []
-    
+    # Get data for all tickers
+    ticker_data = {}
     for ticker in tickers:
         historical_data = get_historical_metrics(ticker)
-        if not historical_data or 'quarterly_data' not in historical_data:
-            continue
-            
-        quarterly_data = historical_data['quarterly_data']
+        if historical_data and 'quarterly_data' in historical_data:
+            ticker_data[ticker] = historical_data
+    
+    if not ticker_data:
+        return [dbc.Alert("No historical data available", color="warning")]
+    
+    tables = []
+    
+    # Define absolute metrics
+    absolute_metrics = {
+        'Revenue': ('Revenue', 'M'),
+        'Gross Profit': ('Gross Profit', 'M'),
+        'EBITDA': ('EBITDA', 'M'),
+        'Net Income': ('Net Income', 'M'),
+        'Free Cash Flow': ('Free Cash Flow', 'M')
+    }
+    
+    # Create tables for absolute metrics
+    for metric_name, (metric_key, unit) in absolute_metrics.items():
+        table_data = []
         
-        # Key metrics to analyze
-        metrics = {
-            'Revenue': 'Revenue', 
-            'Gross Profit': 'Gross Profit',
-            'EBITDA': 'EBITDA',
-            'Net Income': 'Net Income',
-            'Free Cash Flow': 'Free Cash Flow'
-        }
-        
-        for metric_name, metric_key in metrics.items():
-            if metric_key not in quarterly_data:
+        for ticker in sorted(ticker_data.keys()):
+            historical_data = ticker_data[ticker]
+            if metric_key not in historical_data['quarterly_data']:
                 continue
                 
-            metric_dict = quarterly_data[metric_key]
-            quarters = sorted(metric_dict.keys(), reverse=True)  # Most recent first
+            metric_dict = historical_data['quarterly_data'][metric_key]
+            quarters = sorted(metric_dict.keys(), reverse=True)[:4]  # Last 4 quarters
             
             if len(quarters) < 2:
-                continue  # Need at least 2 quarters for QoQ
+                continue
                 
-            # Get current quarter (Q0) and previous quarters
-            current_q = quarters[0] if len(quarters) > 0 else None
-            prev_q = quarters[1] if len(quarters) > 1 else None  # Q-1 for QoQ
-            year_ago_q = quarters[4] if len(quarters) > 4 else None  # Q-4 for YoY
-            
-            # Create row
-            row = {
-                'Company': ticker,
-                'Metric': metric_name
-            }
+            row = {'Company': ticker}
             
             # Last 4 quarters
-            for i, quarter in enumerate(quarters[:4]):
+            for quarter in quarters:
                 quarter_num = (quarter.month - 1) // 3 + 1
                 quarter_label = f"{quarter.year}Q{quarter_num}"
-                value = metric_dict[quarter]
-                
-                if metric_name in ['Revenue', 'Gross Profit', 'EBITDA', 'Net Income', 'Free Cash Flow']:
-                    row[quarter_label] = f"${value/1e6:.1f}M"
+                value = metric_dict[quarter] / 1e6  # Convert to millions
+                row[quarter_label] = f"${value:.1f}M"
+            
+            # QoQ Growth
+            if len(quarters) >= 2:
+                current_val = metric_dict[quarters[0]]
+                prev_val = metric_dict[quarters[1]]
+                if prev_val != 0:
+                    qoq_growth = ((current_val - prev_val) / abs(prev_val)) * 100
+                    row['QoQ%'] = f"{qoq_growth:+.1f}%"
                 else:
-                    row[quarter_label] = f"${value:.2f}"
+                    row['QoQ%'] = "N/A"
             
-            # QoQ Growth (current vs previous quarter)
-            if current_q and prev_q and prev_q in metric_dict and metric_dict[prev_q] != 0:
-                current_val = metric_dict[current_q]
-                prev_val = metric_dict[prev_q]
-                qoq_growth = ((current_val - prev_val) / abs(prev_val)) * 100
-                row['QoQ Growth %'] = f"{qoq_growth:+.1f}%"
+            # YoY Growth
+            if len(quarters) >= 4:
+                current_val = metric_dict[quarters[0]]
+                year_ago_val = metric_dict[quarters[3]]  # 4 quarters ago
+                if year_ago_val != 0:
+                    yoy_growth = ((current_val - year_ago_val) / abs(year_ago_val)) * 100
+                    row['YoY%'] = f"{yoy_growth:+.1f}%"
+                else:
+                    row['YoY%'] = "N/A"
             else:
-                row['QoQ Growth %'] = "N/A"
+                row['YoY%'] = "N/A"
             
-            # YoY Growth (current vs same quarter last year)
-            if current_q and year_ago_q and year_ago_q in metric_dict and metric_dict[year_ago_q] != 0:
-                current_val = metric_dict[current_q]
-                year_ago_val = metric_dict[year_ago_q]
-                yoy_growth = ((current_val - year_ago_val) / abs(year_ago_val)) * 100
-                row['YoY Growth %'] = f"{yoy_growth:+.1f}%"
+            table_data.append(row)
+        
+        # Create table for this metric
+        if table_data:
+            df = pd.DataFrame(table_data)
+            table = dash_table.DataTable(
+                data=df.to_dict('records'),
+                columns=[{"name": col, "id": col} for col in df.columns],
+                sort_action="native",
+                style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+                style_header={'backgroundColor': 'rgb(240, 240, 240)', 'fontWeight': 'bold'},
+                style_data_conditional=[
+                    {'if': {'column_id': 'QoQ%', 'filter_query': '{QoQ%} contains "+"'}, 'color': 'green', 'fontWeight': 'bold'},
+                    {'if': {'column_id': 'YoY%', 'filter_query': '{YoY%} contains "+"'}, 'color': 'green', 'fontWeight': 'bold'},
+                    {'if': {'column_id': 'QoQ%', 'filter_query': '{QoQ%} contains "-"'}, 'color': 'red', 'fontWeight': 'bold'},
+                    {'if': {'column_id': 'YoY%', 'filter_query': '{YoY%} contains "-"'}, 'color': 'red', 'fontWeight': 'bold'}
+                ],
+                style_table={'overflowX': 'auto'}
+            )
+            
+            tables.append(
+                dbc.Card([
+                    dbc.CardHeader([html.H5(f"💰 {metric_name}", className="mb-0")]),
+                    dbc.CardBody([table])
+                ], className="mb-3")
+            )
+    
+    # Create margin tables
+    margin_metrics = {
+        'Gross Profit Margin': ('Gross Profit', 'Revenue'),
+        'EBITDA Margin': ('EBITDA', 'Revenue'),
+        'Net Profit Margin': ('Net Income', 'Revenue'),
+        'FCF Margin': ('Free Cash Flow', 'Revenue')
+    }
+    
+    for margin_name, (numerator_key, denominator_key) in margin_metrics.items():
+        table_data = []
+        
+        for ticker in sorted(ticker_data.keys()):
+            historical_data = ticker_data[ticker]
+            if (numerator_key not in historical_data['quarterly_data'] or 
+                denominator_key not in historical_data['quarterly_data']):
+                continue
+                
+            num_dict = historical_data['quarterly_data'][numerator_key]
+            den_dict = historical_data['quarterly_data'][denominator_key]
+            
+            # Get common quarters
+            common_quarters = set(num_dict.keys()) & set(den_dict.keys())
+            quarters = sorted(common_quarters, reverse=True)[:4]  # Last 4 quarters
+            
+            if len(quarters) < 2:
+                continue
+                
+            row = {'Company': ticker}
+            margins = []
+            
+            # Calculate margins for last 4 quarters
+            for quarter in quarters:
+                quarter_num = (quarter.month - 1) // 3 + 1
+                quarter_label = f"{quarter.year}Q{quarter_num}"
+                
+                numerator = num_dict[quarter]
+                denominator = den_dict[quarter]
+                
+                if denominator != 0:
+                    margin = (numerator / denominator) * 100
+                    row[quarter_label] = f"{margin:.1f}%"
+                    margins.append(margin)
+                else:
+                    row[quarter_label] = "N/A"
+                    margins.append(None)
+            
+            # QoQ Change in margin
+            if len(margins) >= 2 and margins[0] is not None and margins[1] is not None:
+                qoq_change = margins[0] - margins[1]
+                row['QoQ Δ'] = f"{qoq_change:+.1f}pp"  # pp = percentage points
             else:
-                row['YoY Growth %'] = "N/A"
+                row['QoQ Δ'] = "N/A"
             
-            all_data.append(row)
+            # YoY Change in margin
+            if len(margins) >= 4 and margins[0] is not None and margins[3] is not None:
+                yoy_change = margins[0] - margins[3]
+                row['YoY Δ'] = f"{yoy_change:+.1f}pp"
+            else:
+                row['YoY Δ'] = "N/A"
+            
+            table_data.append(row)
+        
+        # Create margin table
+        if table_data:
+            df = pd.DataFrame(table_data)
+            table = dash_table.DataTable(
+                data=df.to_dict('records'),
+                columns=[{"name": col, "id": col} for col in df.columns],
+                sort_action="native",
+                style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+                style_header={'backgroundColor': 'rgb(245, 245, 245)', 'fontWeight': 'bold'},
+                style_data_conditional=[
+                    {'if': {'column_id': 'QoQ Δ', 'filter_query': '{QoQ Δ} contains "+"'}, 'color': 'green', 'fontWeight': 'bold'},
+                    {'if': {'column_id': 'YoY Δ', 'filter_query': '{YoY Δ} contains "+"'}, 'color': 'green', 'fontWeight': 'bold'},
+                    {'if': {'column_id': 'QoQ Δ', 'filter_query': '{QoQ Δ} contains "-"'}, 'color': 'red', 'fontWeight': 'bold'},
+                    {'if': {'column_id': 'YoY Δ', 'filter_query': '{YoY Δ} contains "-"'}, 'color': 'red', 'fontWeight': 'bold'}
+                ],
+                style_table={'overflowX': 'auto'}
+            )
+            
+            tables.append(
+                dbc.Card([
+                    dbc.CardHeader([html.H5(f"📊 {margin_name}", className="mb-0")]),
+                    dbc.CardBody([table])
+                ], className="mb-3")
+            )
     
-    if not all_data:
-        return dbc.Alert("No historical data available for growth analysis", color="warning")
-    
-    # Create DataFrame
-    df = pd.DataFrame(all_data)
-    
-    # Create table
-    table = dash_table.DataTable(
-        data=df.to_dict('records'),
-        columns=[{"name": col, "id": col} for col in df.columns],
-        sort_action="native",
-        style_cell={
-            'textAlign': 'center',
-            'padding': '8px',
-            'fontFamily': 'Arial, sans-serif',
-            'fontSize': '11px',
-        },
-        style_header={
-            'backgroundColor': 'rgb(230, 230, 230)',
-            'fontWeight': 'bold',
-            'textAlign': 'center'
-        },
-        style_data_conditional=[
-            # Green for positive growth
-            {
-                'if': {'column_id': 'QoQ Growth %', 'filter_query': '{QoQ Growth %} contains "+"'},
-                'color': 'green',
-                'fontWeight': 'bold'
-            },
-            {
-                'if': {'column_id': 'YoY Growth %', 'filter_query': '{YoY Growth %} contains "+"'},
-                'color': 'green', 
-                'fontWeight': 'bold'
-            },
-            # Red for negative growth
-            {
-                'if': {'column_id': 'QoQ Growth %', 'filter_query': '{QoQ Growth %} contains "-"'},
-                'color': 'red',
-                'fontWeight': 'bold'
-            },
-            {
-                'if': {'column_id': 'YoY Growth %', 'filter_query': '{YoY Growth %} contains "-"'},
-                'color': 'red',
-                'fontWeight': 'bold'
-            }
-        ],
-        style_table={'overflowX': 'auto'}
-    )
-    
-    return dbc.Card([
-        dbc.CardHeader([
-            html.H4("📊 Growth Analysis: YoY, QoQ & Last 4 Quarters", className="mb-0"),
-            html.P("Quarter-over-Quarter, Year-over-Year growth rates and recent quarterly performance", className="text-muted mb-0 mt-1")
-        ]),
-        dbc.CardBody([table])
-    ])
+    return tables
 
 def create_historical_trends_table(tickers):
     """Create a comprehensive table with historical trends and margins for all tickers"""
@@ -808,7 +864,7 @@ def update_tab_content(active_tab):
                 ]),
                 dbc.Row([
                     dbc.Col([
-                        create_growth_analysis_table(tickers)
+                        html.Div(create_metric_tables(tickers))
                     ], width=12)
                 ])
             ]
