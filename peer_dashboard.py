@@ -1798,22 +1798,22 @@ def create_metrics_section(title, metrics):
         # Intelligent color determination based on metric type and percentage
         if metric_type == 'profitability':  # Higher = Better (ROE, ROIC, NPE)
             if percentage >= 75:
-                color = "success"  # Excellent
+                color = "success"   # 🟢 Excellent - Green
             elif percentage >= 50:
-                color = "info"     # Good  
+                color = "success"   # 🟢 Good - Green  
             elif percentage >= 25:
-                color = "warning"  # Average
+                color = "warning"   # 🟡 Average - Yellow
             else:
-                color = "danger"   # Poor
+                color = "danger"    # 🔴 Poor - Red
         elif metric_type == 'valuation':  # Lower = Better (PE, PB, PS, EV ratios)
             if percentage >= 75:
-                color = "success"  # Excellent (low valuation)
+                color = "success"   # 🟢 Excellent (low valuation) - Green
             elif percentage >= 50:
-                color = "info"     # Good
+                color = "success"   # 🟢 Good (reasonable valuation) - Green
             elif percentage >= 25:
-                color = "warning"  # Average  
+                color = "warning"   # 🟡 Average (high valuation) - Yellow  
             else:
-                color = "danger"   # Poor (high valuation)
+                color = "danger"    # 🔴 Poor (very high valuation) - Red
         else:  # Default behavior
             if percentage >= 70:
                 color = "success"
@@ -2516,43 +2516,74 @@ def get_real_nvidia_metrics(ticker):
         
         # === VALUATION METRICS (Lower = Better) ===
         
-        # PE Ratio - Both Current and Forward
+        # Get current price once for all calculations
+        current_price_num = 0
         try:
-            # Calculate quarterly PE if we have quarterly EPS
-            if not quarterly_financials.empty and 'Basic EPS' in quarterly_financials.index:
-                basic_eps_q = quarterly_financials.loc['Basic EPS'].dropna()
-                if len(basic_eps_q) > 0 and basic_eps_q.iloc[0] > 0:
-                    current_price_num = float(info.get('currentPrice', info.get('regularMarketPrice', 0)))
-                    if current_price_num > 0:
-                        pe_quarterly = current_price_num / (basic_eps_q.iloc[0] * 4)  # Annualize quarterly EPS
-                        # Scale: PE 5-50 as 100-0% (lower PE = higher score)
-                        percentage = min(100, max(0, 100 - ((pe_quarterly - 5) / 45) * 100))
-                        profitability_section.append(('PE Ratio - Quarterly (Est)', f'{pe_quarterly:.1f}', percentage, 'valuation'))
+            if 'currentPrice' in info and info['currentPrice']:
+                current_price_num = float(info['currentPrice'])
+            elif 'regularMarketPrice' in info and info['regularMarketPrice']:
+                current_price_num = float(info['regularMarketPrice'])
+        except:
+            current_price_num = 0
+        
+        # PE Ratio - Quarterly, TTM and Forward
+        # PE Quarterly (from quarterly EPS)
+        try:
+            if not quarterly_financials.empty and current_price_num > 0:
+                # Try different EPS fields that might be available
+                eps_fields = ['Basic EPS', 'Diluted EPS', 'Net Income']
+                eps_quarterly = None
+                
+                for field in eps_fields:
+                    if field in quarterly_financials.index:
+                        eps_data = quarterly_financials.loc[field].dropna()
+                        if len(eps_data) > 0 and eps_data.iloc[0] != 0:
+                            if field == 'Net Income':
+                                # Convert Net Income to EPS
+                                shares = info.get('sharesOutstanding', 0)
+                                if shares > 0:
+                                    eps_quarterly = eps_data.iloc[0] / shares
+                            else:
+                                eps_quarterly = eps_data.iloc[0]
+                            break
+                            
+                if eps_quarterly and eps_quarterly > 0:
+                    pe_quarterly = current_price_num / (eps_quarterly * 4)  # Annualize
+                    percentage = min(100, max(0, 100 - ((pe_quarterly - 5) / 45) * 100))
+                    profitability_section.append(('PE Ratio - Quarterly (Est)', f'{pe_quarterly:.1f}', percentage, 'valuation'))
         except Exception as e:
             print(f"Error calculating quarterly PE: {e}")
             
-        # PE TTM
+        # PE TTM (Trailing Twelve Months)
         if 'trailingPE' in info and info['trailingPE'] is not None and info['trailingPE'] > 0:
             pe_ttm = info['trailingPE']
             percentage = min(100, max(0, 100 - ((pe_ttm - 5) / 45) * 100))
             profitability_section.append(('PE Ratio - TTM', f'{pe_ttm:.1f}', percentage, 'valuation'))
             
-        # PE Forward
+        # PE Forward (Analyst estimates for next 12 months)
         if 'forwardPE' in info and info['forwardPE'] is not None and info['forwardPE'] > 0:
             pe_forward = info['forwardPE']
             percentage = min(100, max(0, 100 - ((pe_forward - 5) / 45) * 100))
-            profitability_section.append(('PE Ratio - Forward', f'{pe_forward:.1f}', percentage, 'valuation'))
+            profitability_section.append(('PE Ratio - Forward (12M Est)', f'{pe_forward:.1f}', percentage, 'valuation'))
         
-        # PB Ratio - Both Quarterly and TTM estimates
+        # PB Ratio - Both Quarterly and TTM estimates  
+        # PB Quarterly (from quarterly balance sheet)
         try:
-            current_price_num = float(info.get('currentPrice', info.get('regularMarketPrice', 0)))
-            
-            # Quarterly Book Value estimate
-            if not quarterly_financials.empty and 'Total Stockholder Equity' in quarterly_financials.index and current_price_num > 0:
-                equity_q = quarterly_financials.loc['Total Stockholder Equity'].dropna()
+            if not quarterly_financials.empty and current_price_num > 0:
+                # Try different equity fields
+                equity_fields = ['Total Stockholder Equity', 'Stockholders Equity', 'Total Equity']
+                equity_quarterly = None
+                
+                for field in equity_fields:
+                    if field in quarterly_financials.index:
+                        equity_data = quarterly_financials.loc[field].dropna()
+                        if len(equity_data) > 0 and equity_data.iloc[0] > 0:
+                            equity_quarterly = equity_data.iloc[0]
+                            break
+                            
                 shares_outstanding = info.get('sharesOutstanding', 0)
-                if len(equity_q) > 0 and shares_outstanding > 0:
-                    book_value_per_share_q = equity_q.iloc[0] / shares_outstanding
+                if equity_quarterly and shares_outstanding > 0:
+                    book_value_per_share_q = equity_quarterly / shares_outstanding
                     pb_quarterly = current_price_num / book_value_per_share_q
                     # Scale: PB 0.5-5 as 100-0%
                     percentage = min(100, max(0, 100 - ((pb_quarterly - 0.5) / 4.5) * 100))
@@ -2560,7 +2591,7 @@ def get_real_nvidia_metrics(ticker):
         except Exception as e:
             print(f"Error calculating quarterly PB: {e}")
             
-        # PB TTM
+        # PB TTM (from API)
         if 'priceToBook' in info and info['priceToBook'] is not None and info['priceToBook'] > 0:
             pb_ratio = info['priceToBook']
             percentage = min(100, max(0, 100 - ((pb_ratio - 0.5) / 4.5) * 100))
@@ -2587,17 +2618,61 @@ def get_real_nvidia_metrics(ticker):
             percentage = min(100, max(0, 100 - ((ps_ratio - 0.5) / 9.5) * 100))
             profitability_section.append(('PS Ratio - TTM', f'{ps_ratio:.1f}', percentage, 'valuation'))
         
-        # EV/Revenue - Both Quarterly and TTM estimates 
+        # EV/Revenue - Both Quarterly and TTM estimates
+        # EV/Revenue Quarterly (estimated)
+        try:
+            if not quarterly_financials.empty and 'Total Revenue' in quarterly_financials.index:
+                revenue_q = quarterly_financials.loc['Total Revenue'].dropna()
+                enterprise_value = info.get('enterpriseValue', 0)
+                if len(revenue_q) > 0 and enterprise_value > 0:
+                    # Annualize quarterly revenue
+                    annual_revenue_est = revenue_q.iloc[0] * 4
+                    ev_revenue_quarterly = enterprise_value / annual_revenue_est
+                    percentage = min(100, max(0, 100 - ((ev_revenue_quarterly - 0.5) / 9.5) * 100))
+                    profitability_section.append(('EV/Revenue - Quarterly (Est)', f'{ev_revenue_quarterly:.1f}', percentage, 'valuation'))
+        except Exception as e:
+            print(f"Error calculating quarterly EV/Revenue: {e}")
+            
+        # EV/Revenue TTM (from API)
         if 'enterpriseToRevenue' in info and info['enterpriseToRevenue'] is not None:
             ev_revenue = info['enterpriseToRevenue']
-            # Scale: EV/Revenue 0.5-10 as 100-0%
             percentage = min(100, max(0, 100 - ((ev_revenue - 0.5) / 9.5) * 100))
             profitability_section.append(('EV/Revenue - TTM', f'{ev_revenue:.1f}', percentage, 'valuation'))
         
         # EV/EBITDA - Both Quarterly and TTM estimates
+        # EV/EBITDA Quarterly (estimated)
+        try:
+            if not quarterly_financials.empty:
+                # Try to find EBITDA or calculate it
+                ebitda_quarterly = None
+                
+                # Method 1: Direct EBITDA field
+                if 'EBITDA' in quarterly_financials.index:
+                    ebitda_data = quarterly_financials.loc['EBITDA'].dropna()
+                    if len(ebitda_data) > 0:
+                        ebitda_quarterly = ebitda_data.iloc[0]
+                
+                # Method 2: Calculate EBITDA from Operating Income + Depreciation
+                elif 'Operating Income' in quarterly_financials.index:
+                    op_income = quarterly_financials.loc['Operating Income'].dropna()
+                    if len(op_income) > 0:
+                        # Use operating income as proxy (conservative estimate)
+                        ebitda_quarterly = op_income.iloc[0]
+                        
+                if ebitda_quarterly and ebitda_quarterly > 0:
+                    enterprise_value = info.get('enterpriseValue', 0)
+                    if enterprise_value > 0:
+                        # Annualize quarterly EBITDA
+                        annual_ebitda_est = ebitda_quarterly * 4
+                        ev_ebitda_quarterly = enterprise_value / annual_ebitda_est
+                        percentage = min(100, max(0, 100 - ((ev_ebitda_quarterly - 5) / 45) * 100))
+                        profitability_section.append(('EV/EBITDA - Quarterly (Est)', f'{ev_ebitda_quarterly:.1f}', percentage, 'valuation'))
+        except Exception as e:
+            print(f"Error calculating quarterly EV/EBITDA: {e}")
+            
+        # EV/EBITDA TTM (from API)
         if 'enterpriseToEbitda' in info and info['enterpriseToEbitda'] is not None and info['enterpriseToEbitda'] > 0:
             ev_ebitda = info['enterpriseToEbitda']
-            # Scale: EV/EBITDA 5-50 as 100-0%  
             percentage = min(100, max(0, 100 - ((ev_ebitda - 5) / 45) * 100))
             profitability_section.append(('EV/EBITDA - TTM', f'{ev_ebitda:.1f}', percentage, 'valuation'))
             
