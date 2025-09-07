@@ -1523,9 +1523,9 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
             if 'industry' in info and info['industry']:
                 company_info += f" / {info['industry']}"
     
-    # Enhanced Header Section
+    # Enhanced Header Section - Neutral Grey Design
     header_style = {
-        "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "background": "linear-gradient(135deg, #6c757d 0%, #495057 100%)",
         "color": "white",
         "borderRadius": "8px",
         "boxShadow": "0 4px 8px rgba(0,0,0,0.1)"
@@ -1539,8 +1539,8 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
                     html.P([
                         html.Strong("WKN: "), "123456 | ",
                         html.Strong("ISIN: "), f"US{ticker}001 | ",
-                        html.Strong("Börse: "), "NASDAQ | ",
-                        html.Strong("Sektor: "), company_info
+                        html.Strong("Exchange: "), "NASDAQ | ",
+                        html.Strong("Sector: "), company_info
                     ], className="text-white-50 mb-0", style={"fontSize": "0.9rem"})
                 ], width=8),
                 dbc.Col([
@@ -1557,7 +1557,7 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
     left_charts = dbc.Col([
         # Revenue/Earnings Chart
         dbc.Card([
-            dbc.CardHeader("Umsatz- und Gewinnentwicklung (jährlich)"),
+            dbc.CardHeader("Revenue and Earnings Development (Annual)"),
             dbc.CardBody([
                 dcc.Graph(
                     figure=create_real_revenue_chart(ticker),
@@ -1568,7 +1568,7 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
         
         # Stock Price Chart  
         dbc.Card([
-            dbc.CardHeader("Aktienkursentwicklung"),
+            dbc.CardHeader("Stock Price Development"),
             dbc.CardBody([
                 dcc.Graph(
                     figure=create_real_stock_chart(ticker), 
@@ -1584,14 +1584,14 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
     # Default scores if no real data
     if not score_cards_data:
         score_cards_data = [
-            {"title": "QUALITÄTS-CHECK", "score": "10", "max_score": "15", "color": "warning", 
-             "details": ["Daten nicht verfügbar"]},
-            {"title": "Umsatz-Wachs. 2J", "score": "N/A", "max_score": "", "color": "secondary",
-             "details": ["Daten nicht verfügbar"]},
-            {"title": "WACHSTUMS-CHECK", "score": "8", "max_score": "15", "color": "warning",
-             "details": ["Daten nicht verfügbar"]},
-            {"title": "AAQS Score", "score": "6", "max_score": "", "color": "warning", 
-             "details": ["Daten nicht verfügbar"]}
+            {"title": "QUALITY CHECK", "score": "10", "max_score": "15", "color": "warning", 
+             "details": ["Data not available"]},
+            {"title": "REVENUE GROWTH 2Y", "score": "N/A", "max_score": "", "color": "secondary",
+             "details": ["Data not available"]},
+            {"title": "GROWTH CHECK", "score": "8", "max_score": "15", "color": "warning",
+             "details": ["Data not available"]},
+            {"title": "AAQS SCORE", "score": "6", "max_score": "", "color": "warning", 
+             "details": ["Data not available"]}
         ]
     
     middle_scores = dbc.Col([
@@ -1606,13 +1606,13 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
     # Default metrics if no real data
     if not detailed_metrics_data:
         detailed_metrics_data = [
-            ("Wachstum und Stabilität", [
-                ("Umsatzwachstum 2 Jahre", "N/A", 50),
-                ("EPS-Wachstum 2 Jahre", "N/A", 50)
+            ("Profitability Check", [
+                ("Return on Equity (ROE)", "N/A", 50),
+                ("Net Profit Margin", "N/A", 50)
             ]),
-            ("Rentabilität und Effizienz", [
-                ("Bruttomarge", "N/A", 50),
-                ("Betriebsmarge", "N/A", 50)
+            ("Stock Development", [
+                ("Performance per Year", "N/A", 50),
+                ("Stock Stability", "N/A", 50)
             ])
         ]
     
@@ -1647,8 +1647,8 @@ def create_real_revenue_chart(ticker):
                 earnings = [rev * 0.1 for rev in revenues]  # Fallback estimate
             
             fig = go.Figure()
-            fig.add_trace(go.Bar(name='Umsatz (Mrd.)', x=years[::-1], y=revenues[::-1], marker_color='lightblue'))
-            fig.add_trace(go.Bar(name='Gewinn (Mrd.)', x=years[::-1], y=earnings[::-1], marker_color='darkblue'))
+            fig.add_trace(go.Bar(name='Revenue (B)', x=years[::-1], y=revenues[::-1], marker_color='lightblue'))
+            fig.add_trace(go.Bar(name='Earnings (B)', x=years[::-1], y=earnings[::-1], marker_color='darkblue'))
             
             fig.update_layout(
                 barmode='group',
@@ -1668,8 +1668,8 @@ def create_real_revenue_chart(ticker):
     earnings = [0.1, 0.15]
     
     fig = go.Figure()
-    fig.add_trace(go.Bar(name='Umsatz (Mrd.)', x=years, y=revenue, marker_color='lightblue'))
-    fig.add_trace(go.Bar(name='Gewinn (Mrd.)', x=years, y=earnings, marker_color='darkblue'))
+    fig.add_trace(go.Bar(name='Revenue (B)', x=years, y=revenue, marker_color='lightblue'))
+    fig.add_trace(go.Bar(name='Earnings (B)', x=years, y=earnings, marker_color='darkblue'))
     
     fig.update_layout(
         barmode='group',
@@ -1696,7 +1696,7 @@ def create_real_stock_chart(ticker):
                 x=hist.index, 
                 y=hist['Close'], 
                 mode='lines', 
-                name='Aktienkurs', 
+                name='Stock Price', 
                 line=dict(color='green', width=2)
             ))
             
@@ -1719,7 +1719,7 @@ def create_real_stock_chart(ticker):
     prices = prices * (18.90 / prices[-1])  # Normalize to current price
     
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=dates, y=prices, mode='lines', name='Aktienkurs', line=dict(color='green', width=2)))
+    fig.add_trace(go.Scatter(x=dates, y=prices, mode='lines', name='Stock Price', line=dict(color='green', width=2)))
     
     fig.update_layout(
         title='',
@@ -1735,16 +1735,20 @@ def create_real_stock_chart(ticker):
 def create_score_card(title, score, max_score="", color="primary", details=[]):
     """Create a score card like in NVIDIA dashboard"""
     
-    if max_score:
-        score_display = html.H1(f"{score}/{max_score}", className=f"text-{color} mb-0 fw-bold", style={"fontSize": "2.5rem"})
-    else:
-        score_display = html.H1(score, className=f"text-{color} mb-0 fw-bold", style={"fontSize": "2.5rem"})
+    # Use neutral grey colors instead of bright colors
+    display_color = "secondary"  # Always use grey
     
-    # Enhanced styling for better visual impact
+    if max_score:
+        score_display = html.H1(f"{score}/{max_score}", className=f"text-{display_color} mb-0 fw-bold", style={"fontSize": "2.5rem"})
+    else:
+        score_display = html.H1(score, className=f"text-{display_color} mb-0 fw-bold", style={"fontSize": "2.5rem"})
+    
+    # Neutral grey styling
     card_style = {
         "borderRadius": "8px",
         "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
-        "border": f"2px solid var(--bs-{color})"
+        "border": "2px solid #6c757d",  # Neutral grey border
+        "backgroundColor": "#f8f9fa"  # Light grey background
     }
     
     return dbc.Card([
@@ -1752,9 +1756,10 @@ def create_score_card(title, score, max_score="", color="primary", details=[]):
             html.H6(title, className="card-title text-muted mb-3 fw-bold", style={"fontSize": "0.9rem", "textTransform": "uppercase"}),
             score_display,
             html.Hr(className="my-3"),
+            # Left-aligned details as requested
             html.Div([
-                html.Small(detail, className="d-block text-muted mb-1") for detail in details
-            ])
+                html.Small(detail, className="d-block text-muted mb-1 text-start") for detail in details
+            ], className="text-start")  # Changed from center to left alignment
         ], className="text-center p-4")
     ], className="mb-3", style=card_style)
 
@@ -1852,27 +1857,20 @@ def get_real_nvidia_metrics(ticker):
         
         if 'grossMargins' in info and info['grossMargins'] is not None:
             gross_margin = info['grossMargins'] * 100
-            quality_details.append(f"Bruttomarge: {gross_margin:.1f}%")
+            quality_details.append(f"Gross Margin: {gross_margin:.1f}%")
             if gross_margin > 60: quality_score += 5
             elif gross_margin > 40: quality_score += 3
             elif gross_margin > 20: quality_score += 1
         
         if 'operatingMargins' in info and info['operatingMargins'] is not None:
             op_margin = info['operatingMargins'] * 100
-            quality_details.append(f"Betriebsmarge: {op_margin:.1f}%")
+            quality_details.append(f"Operating Margin: {op_margin:.1f}%")
             if op_margin > 20: quality_score += 5
             elif op_margin > 10: quality_score += 3
             elif op_margin > 5: quality_score += 1
-            
-        if 'returnOnEquity' in info and info['returnOnEquity'] is not None:
-            roe = info['returnOnEquity'] * 100
-            quality_details.append(f"Eigenkapitalrendite: {roe:.1f}%")
-            if roe > 20: quality_score += 5
-            elif roe > 15: quality_score += 3
-            elif roe > 10: quality_score += 1
         
         score_cards.append({
-            'title': 'QUALITÄTS-CHECK',
+            'title': 'QUALITY CHECK',
             'score': str(quality_score),
             'max_score': '15',
             'color': 'success' if quality_score >= 12 else ('warning' if quality_score >= 8 else 'danger'),
@@ -1890,11 +1888,11 @@ def get_real_nvidia_metrics(ticker):
             
         if revenue_growth is not None:
             score_cards.append({
-                'title': 'Umsatz-Wachs. 2J',
+                'title': 'REVENUE GROWTH 2Y',
                 'score': f"{revenue_growth:.1f}%",
                 'max_score': '',
                 'color': 'success' if revenue_growth > 15 else ('primary' if revenue_growth > 5 else 'warning'),
-                'details': ['Performance letztes Jahr', 'YoY Growth Rate']
+                'details': ['Last Year Performance', 'YoY Growth Rate']
             })
         
         # Growth Check Score
@@ -1902,20 +1900,20 @@ def get_real_nvidia_metrics(ticker):
         growth_details = []
         
         if revenue_growth is not None:
-            growth_details.append(f"Umsatzwachstum: {revenue_growth:.1f}%")
+            growth_details.append(f"Revenue Growth: {revenue_growth:.1f}%")
             if revenue_growth > 20: growth_score += 7
             elif revenue_growth > 10: growth_score += 5
             elif revenue_growth > 0: growth_score += 3
         
         if 'earnings_growth' in growth_metrics:
             earnings_growth = growth_metrics['earnings_growth']
-            growth_details.append(f"EPS-Wachstum: {earnings_growth:.1f}%")
+            growth_details.append(f"EPS Growth: {earnings_growth:.1f}%")
             if earnings_growth > 15: growth_score += 8
             elif earnings_growth > 5: growth_score += 5
             elif earnings_growth > 0: growth_score += 2
             
         score_cards.append({
-            'title': 'WACHSTUMS-CHECK',
+            'title': 'GROWTH CHECK',
             'score': str(growth_score),
             'max_score': '15',
             'color': 'success' if growth_score >= 12 else ('warning' if growth_score >= 8 else 'danger'),
@@ -1925,64 +1923,142 @@ def get_real_nvidia_metrics(ticker):
         # Overall AAQS Score (combination of quality and growth)
         overall_score = min(10, (quality_score + growth_score) // 3)
         score_cards.append({
-            'title': 'AAQS Score',
+            'title': 'AAQS SCORE',
             'score': str(overall_score),
             'max_score': '',
             'color': 'success' if overall_score >= 8 else ('warning' if overall_score >= 6 else 'danger'),
-            'details': ['Gesamtbewertung']
+            'details': ['Overall Assessment']
         })
         
-        # Detailed Metrics with Progress Bars
+        # Calculate stock stability (volatility measures)
+        stock_stability_score = 50  # Default
+        annual_performance = 0
+        try:
+            # Get 1 year of stock data for stability calculation
+            hist = stock.history(period="1y")
+            if not hist.empty and len(hist) > 20:
+                daily_returns = hist['Close'].pct_change().dropna()
+                volatility = daily_returns.std() * (252 ** 0.5) * 100  # Annualized volatility
+                stock_stability_score = max(0, 100 - volatility * 2)  # Lower volatility = higher stability
+                
+                # Calculate annual performance
+                start_price = hist['Close'].iloc[0]
+                end_price = hist['Close'].iloc[-1]
+                annual_performance = ((end_price - start_price) / start_price) * 100
+        except:
+            pass
+        
+        # Calculate ROIC (Return on Invested Capital)
+        roic = None
+        try:
+            if not balance_sheet.empty and not financials.empty:
+                # Get total invested capital and net operating profit
+                if 'Total Assets' in balance_sheet.index and 'Cash And Cash Equivalents' in balance_sheet.index:
+                    total_assets = balance_sheet.loc['Total Assets'].iloc[0] if len(balance_sheet.loc['Total Assets']) > 0 else None
+                    cash = balance_sheet.loc['Cash And Cash Equivalents'].iloc[0] if len(balance_sheet.loc['Cash And Cash Equivalents']) > 0 else None
+                    if total_assets and cash:
+                        invested_capital = total_assets - cash
+                        if 'Net Income' in financials.index and invested_capital > 0:
+                            net_income = financials.loc['Net Income'].iloc[0] if len(financials.loc['Net Income']) > 0 else None
+                            if net_income:
+                                roic = (net_income / invested_capital) * 100
+        except:
+            pass
+        
+        # Detailed Metrics with Progress Bars - Your exact specifications
         detailed_metrics = []
         
-        # Growth and Stability Section
-        growth_section = []
-        if revenue_growth is not None:
-            percentage = min(100, max(0, (revenue_growth + 20) * 2))  # Scale -10 to 40% as 0 to 100%
-            growth_section.append(('Umsatzwachstum 2 Jahre', f'{revenue_growth:.1f}%', percentage))
-            
-        if 'earnings_growth' in growth_metrics:
-            earnings_growth = growth_metrics['earnings_growth']
-            percentage = min(100, max(0, (earnings_growth + 20) * 2))
-            growth_section.append(('EPS-Wachstum 2 Jahre', f'{earnings_growth:.1f}%', percentage))
-        
-        if growth_section:
-            detailed_metrics.append(('Wachstum und Stabilität', growth_section))
-        
-        # Profitability Section  
+        # 1. Profitability Check: ROE, ROIC, Net Profit Margin
         profitability_section = []
-        if 'grossMargins' in info and info['grossMargins'] is not None:
-            gross_margin = info['grossMargins'] * 100
-            percentage = min(100, gross_margin)
-            profitability_section.append(('Bruttomarge', f'{gross_margin:.1f}%', percentage))
-            
-        if 'operatingMargins' in info and info['operatingMargins'] is not None:
-            op_margin = info['operatingMargins'] * 100
-            percentage = min(100, max(0, op_margin * 2))  # Scale 0-50% as 0-100%
-            profitability_section.append(('Betriebsmarge', f'{op_margin:.1f}%', percentage))
-            
         if 'returnOnEquity' in info and info['returnOnEquity'] is not None:
             roe = info['returnOnEquity'] * 100
             percentage = min(100, max(0, roe * 3))  # Scale 0-33% as 0-100%
-            profitability_section.append(('Eigenkapitalrendite', f'{roe:.1f}%', percentage))
+            profitability_section.append(('Return on Equity (ROE)', f'{roe:.1f}%', percentage))
+            
+        if roic is not None:
+            percentage = min(100, max(0, roic * 4))  # Scale 0-25% as 0-100%
+            profitability_section.append(('Return on Invested Capital (ROIC)', f'{roic:.1f}%', percentage))
+        
+        if 'profitMargins' in info and info['profitMargins'] is not None:
+            net_margin = info['profitMargins'] * 100
+            percentage = min(100, max(0, net_margin * 5))  # Scale 0-20% as 0-100%
+            profitability_section.append(('Net Profit Margin', f'{net_margin:.1f}%', percentage))
             
         if profitability_section:
-            detailed_metrics.append(('Rentabilität und Effizienz', profitability_section))
+            detailed_metrics.append(('Profitability Check', profitability_section))
+        
+        # 2. Stock Development: Performance per year and Stock Stability
+        stock_section = []
+        if annual_performance != 0:
+            performance_percentage = min(100, max(0, (annual_performance + 50) * 1.5))  # Scale -50% to 50% as 0-100%
+            stock_section.append(('Performance per Year', f'{annual_performance:.1f}%', performance_percentage))
             
-        # Financial Health Section
-        financial_section = []
-        if 'currentRatio' in info and info['currentRatio'] is not None:
-            current_ratio = info['currentRatio']
-            percentage = min(100, max(0, (current_ratio - 0.5) * 50))  # Scale 0.5-2.5 as 0-100%
-            financial_section.append(('Liquiditätsgrad', f'{current_ratio:.2f}', percentage))
+        stock_section.append(('Stock Stability', f'{stock_stability_score:.1f}%', stock_stability_score))
+        
+        if stock_section:
+            detailed_metrics.append(('Stock Development', stock_section))
             
-        if 'debtToEquity' in info and info['debtToEquity'] is not None:
+        # 3. Security and Balance: EBIT vs Debt, EBIT Interest Coverage, Equity vs Debt Ratio
+        security_section = []
+        
+        # Try to calculate EBIT and debt metrics
+        ebit_debt_ratio = None
+        interest_coverage = None
+        equity_debt_ratio = None
+        
+        try:
+            if not financials.empty:
+                # EBIT calculation (Operating Income)
+                ebit = None
+                if 'Operating Income' in financials.index:
+                    ebit = financials.loc['Operating Income'].iloc[0] if len(financials.loc['Operating Income']) > 0 else None
+                
+                # Get debt information
+                total_debt = None
+                if not balance_sheet.empty and 'Total Debt' in balance_sheet.index:
+                    total_debt = balance_sheet.loc['Total Debt'].iloc[0] if len(balance_sheet.loc['Total Debt']) > 0 else None
+                elif 'debtToEquity' in info and 'totalStockholderEquity' in info:
+                    # Calculate from debt-to-equity ratio
+                    if info['debtToEquity'] and info['totalStockholderEquity']:
+                        total_debt = info['debtToEquity'] * info['totalStockholderEquity']
+                
+                # EBIT to Debt ratio
+                if ebit and total_debt and total_debt > 0:
+                    ebit_debt_ratio = (ebit / total_debt) * 100
+                
+                # Interest coverage ratio (EBIT / Interest Expense)
+                if ebit and 'Interest Expense' in financials.index:
+                    interest_expense = financials.loc['Interest Expense'].iloc[0] if len(financials.loc['Interest Expense']) > 0 else None
+                    if interest_expense and interest_expense < 0:  # Interest expense is usually negative
+                        interest_coverage = ebit / abs(interest_expense)
+                
+                # Equity to Debt ratio
+                if 'totalStockholderEquity' in info and total_debt:
+                    equity = info['totalStockholderEquity']
+                    if equity > 0 and total_debt > 0:
+                        equity_debt_ratio = (equity / total_debt) * 100
+        except:
+            pass
+        
+        if ebit_debt_ratio is not None:
+            percentage = min(100, max(0, ebit_debt_ratio * 2))  # Scale 0-50% as 0-100%
+            security_section.append(('EBIT / Debt Ratio', f'{ebit_debt_ratio:.1f}%', percentage))
+        
+        if interest_coverage is not None:
+            percentage = min(100, max(0, min(interest_coverage * 10, 100)))  # Scale 0-10x as 0-100%
+            security_section.append(('EBIT Interest Coverage', f'{interest_coverage:.1f}x', percentage))
+            
+        if equity_debt_ratio is not None:
+            percentage = min(100, max(0, equity_debt_ratio))  # Scale 0-100% as 0-100%
+            security_section.append(('Equity / Debt Ratio', f'{equity_debt_ratio:.1f}%', percentage))
+        elif 'debtToEquity' in info and info['debtToEquity'] is not None:
+            # Fallback: show debt-to-equity (inverse relationship)
             debt_equity = info['debtToEquity']
-            percentage = max(0, 100 - debt_equity * 20)  # Lower debt is better
-            financial_section.append(('Verschuldungsgrad', f'{debt_equity:.2f}', percentage))
+            percentage = max(0, 100 - min(debt_equity * 5, 100))  # Lower debt = better
+            security_section.append(('Debt / Equity Ratio', f'{debt_equity:.2f}', percentage))
             
-        if financial_section:
-            detailed_metrics.append(('Sicherheit und Bilanz', financial_section))
+        if security_section:
+            detailed_metrics.append(('Security and Balance', security_section))
         
         return {
             'score_cards': score_cards,
