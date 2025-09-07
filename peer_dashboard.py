@@ -824,15 +824,9 @@ def update_tab_content(active_tab):
             return [
                 dbc.Row([
                     dbc.Col([
-                        html.H3("📈 Historical Financial Trends Analysis"),
-                        html.P("Quarterly trends for revenue, cash flow, and profitability over the last 4-6 quarters."),
+                        html.H3("📊 Historical Financial Data"),
+                        html.P("Quarterly financial metrics in table format."),
                     ])
-                ]),
-                dbc.Row([
-                    dbc.Col([
-                        html.H4("📊 Interactive Trend Charts"),
-                        dcc.Graph(figure=create_historical_trends_chart(tickers))
-                    ], width=12)
                 ]),
                 dbc.Row([
                     dbc.Col([
@@ -842,6 +836,7 @@ def update_tab_content(active_tab):
                 ], className="mb-4"),
                 dbc.Row([
                     dbc.Col([
+                        html.H4("📊 Quarterly Financial Data"),
                         create_chart_data_table(tickers)
                     ], width=12)
                 ])
@@ -856,13 +851,8 @@ def update_tab_content(active_tab):
                 dbc.Row([
                     dbc.Col([
                         html.H3("📊 Growth Rates Analysis"),
-                        html.P("Quarter-over-Quarter and Year-over-Year growth rate comparison."),
+                        html.P("Quarter-over-Quarter and Year-over-Year growth rate data in table format."),
                     ])
-                ]),
-                dbc.Row([
-                    dbc.Col([
-                        dcc.Graph(figure=create_growth_rates_chart(tickers))
-                    ], width=12)
                 ]),
                 dbc.Row([
                     dbc.Col([
