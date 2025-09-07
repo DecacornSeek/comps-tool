@@ -1643,10 +1643,27 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
             ])
         ]
     
-    right_metrics = dbc.Col([
+    # Create metrics sections and peer comparison
+    metrics_sections = [
         create_metrics_section(section_name, metrics) 
-        for section_name, metrics in detailed_metrics_data        
-    ], width=4)
+        for section_name, metrics in detailed_metrics_data
+    ]
+    
+    # Add peer comparison table
+    peer_comparison_card = dbc.Card([
+        dbc.CardBody([
+            create_peer_comparison_table(ticker)
+        ], className="p-3")
+    ], className="mb-3", style={
+        "borderRadius": "8px",
+        "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+        "border": "1px solid #e0e0e0"
+    })
+    
+    # Combine all sections
+    all_sections = metrics_sections + [peer_comparison_card]
+    
+    right_metrics = dbc.Col(all_sections, width=4)
     
     return [
         header_section,
@@ -3124,6 +3141,243 @@ def create_improved_investment_banking_table_new(metrics):
             html.Tbody(table_rows)
         ], style=table_style)
     ], style={'margin': '0 auto'})
+
+
+def get_peer_group_tickers():
+    """Get peer group tickers from the CSV file"""
+    try:
+        peer_df = pd.read_csv('/home/user/webapp/zeta_adtech_analysis_enhanced.csv')
+        return peer_df['Ticker'].tolist()
+    except:
+        # Fallback to hardcoded peer group
+        return ['ZETA', 'BRZE', 'CXM', 'DV', 'IAS', 'TTD', 'CRTO', 'RAMP']
+
+
+def calculate_peer_comparison_metrics(target_ticker):
+    """Calculate comprehensive peer comparison for profitability and valuation metrics"""
+    
+    peer_tickers = get_peer_group_tickers()
+    if target_ticker not in peer_tickers:
+        peer_tickers.append(target_ticker)
+    
+    # Define the metrics to compare
+    metrics_to_compare = {
+        'EV/EBITDA (TTM)': 'enterpriseToEbitda',
+        'EV/Sales (TTM)': 'enterpriseToRevenue', 
+        'P/E (TTM)': 'trailingPE',
+        'P/E (Forward)': 'forwardPE',
+        'P/S (TTM)': 'priceToSalesTrailing12Months',
+        'P/B (TTM)': 'priceToBook',
+        'Gross Margin': 'grossMargins',
+        'Operating Margin': 'operatingMargins',
+        'Net Profit Margin': 'profitMargins',
+        'ROE': 'returnOnEquity',
+        'ROA': 'returnOnAssets'
+    }
+    
+    # Collect data for all peers
+    peer_data = {}
+    
+    for ticker in peer_tickers:
+        try:
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            
+            peer_data[ticker] = {}
+            
+            for metric_name, api_field in metrics_to_compare.items():
+                value = info.get(api_field, None)
+                
+                # Convert margins to percentages
+                if 'Margin' in metric_name or metric_name in ['ROE', 'ROA']:
+                    if value is not None:
+                        value = value * 100
+                
+                peer_data[ticker][metric_name] = value
+                
+        except Exception as e:
+            print(f"Error fetching data for {ticker}: {e}")
+            peer_data[ticker] = {metric: None for metric in metrics_to_compare.keys()}
+    
+    # Calculate peer statistics (excluding target company)
+    peer_stats = {}
+    target_data = peer_data.get(target_ticker, {})
+    
+    for metric_name in metrics_to_compare.keys():
+        # Get values from all peers except target
+        peer_values = []
+        for ticker, data in peer_data.items():
+            if ticker != target_ticker and data.get(metric_name) is not None:
+                # Filter out extreme outliers (e.g., negative P/E ratios)
+                value = data[metric_name]
+                if 'P/E' in metric_name and (value < 0 or value > 500):
+                    continue
+                if 'EV/' in metric_name and (value < 0 or value > 1000):
+                    continue
+                peer_values.append(value)
+        
+        # Calculate statistics
+        if len(peer_values) >= 2:
+            peer_median = np.median(peer_values)
+            peer_average = np.mean(peer_values)
+            target_value = target_data.get(metric_name)
+            
+            # Determine positioning vs peers
+            vs_median = None
+            vs_average = None
+            
+            if target_value is not None:
+                # For valuation metrics, lower is generally better
+                if any(term in metric_name for term in ['P/E', 'P/S', 'P/B', 'EV/']):
+                    vs_median = 'Below' if target_value < peer_median else 'Above'
+                    vs_average = 'Below' if target_value < peer_average else 'Above'
+                # For profitability metrics, higher is generally better  
+                else:
+                    vs_median = 'Above' if target_value > peer_median else 'Below'
+                    vs_average = 'Above' if target_value > peer_average else 'Below'
+            
+            peer_stats[metric_name] = {
+                'target_value': target_value,
+                'peer_median': peer_median,
+                'peer_average': peer_average,
+                'vs_median': vs_median,
+                'vs_average': vs_average,
+                'peer_count': len(peer_values)
+            }
+        else:
+            peer_stats[metric_name] = {
+                'target_value': target_data.get(metric_name),
+                'peer_median': None,
+                'peer_average': None,
+                'vs_median': None,
+                'vs_average': None,
+                'peer_count': len(peer_values)
+            }
+    
+    return peer_stats
+
+
+def create_peer_comparison_table(target_ticker):
+    """Create a comprehensive peer comparison table"""
+    
+    peer_stats = calculate_peer_comparison_metrics(target_ticker)
+    
+    if not peer_stats:
+        return html.Div("Peer comparison data unavailable", className="text-muted")
+    
+    # Create table rows
+    table_rows = []
+    
+    # Group metrics by category
+    categories = {
+        'Valuation Metrics': ['P/E (TTM)', 'P/E (Forward)', 'P/S (TTM)', 'P/B (TTM)', 'EV/EBITDA (TTM)', 'EV/Sales (TTM)'],
+        'Profitability Metrics': ['Gross Margin', 'Operating Margin', 'Net Profit Margin', 'ROE', 'ROA']
+    }
+    
+    for category_name, metrics in categories.items():
+        # Add category header
+        table_rows.append(
+            html.Tr([
+                html.Td(category_name, colSpan=6, style={
+                    'backgroundColor': '#e8f4fd',
+                    'fontWeight': 'bold',
+                    'padding': '12px 10px',
+                    'borderBottom': '2px solid #2196f3',
+                    'borderTop': '2px solid #2196f3' if category_name != 'Valuation Metrics' else 'none',
+                    'fontSize': '12px',
+                    'color': '#1976d2',
+                    'textTransform': 'uppercase',
+                    'letterSpacing': '0.5px'
+                })
+            ])
+        )
+        
+        # Add metric rows
+        for metric in metrics:
+            if metric in peer_stats:
+                stats = peer_stats[metric]
+                target_val = stats['target_value']
+                peer_median = stats['peer_median']
+                peer_avg = stats['peer_average']
+                vs_median = stats['vs_median']
+                vs_average = stats['vs_average']
+                
+                # Format values
+                def format_value(val, metric_name):
+                    if val is None:
+                        return "N/A"
+                    elif 'Margin' in metric_name or metric_name in ['ROE', 'ROA']:
+                        return f"{val:.1f}%"
+                    else:
+                        return f"{val:.1f}"
+                
+                # Color coding for positioning
+                def get_position_color(position, metric_name):
+                    if position is None:
+                        return '#6c757d'  # Gray
+                    
+                    # For valuation metrics, below peers is good (green)
+                    if any(term in metric_name for term in ['P/E', 'P/S', 'P/B', 'EV/']):
+                        return '#28a745' if position == 'Below' else '#dc3545'
+                    # For profitability metrics, above peers is good (green)
+                    else:
+                        return '#28a745' if position == 'Above' else '#dc3545'
+                
+                median_color = get_position_color(vs_median, metric)
+                average_color = get_position_color(vs_average, metric)
+                
+                table_rows.append(
+                    html.Tr([
+                        html.Td(metric, style={'padding': '8px 10px', 'fontWeight': '500', 'fontSize': '12px'}),
+                        html.Td(format_value(target_val, metric), style={'padding': '8px 10px', 'textAlign': 'right', 'fontWeight': 'bold', 'fontSize': '12px'}),
+                        html.Td(format_value(peer_avg, metric), style={'padding': '8px 10px', 'textAlign': 'right', 'fontSize': '12px'}),
+                        html.Td(format_value(peer_median, metric), style={'padding': '8px 10px', 'textAlign': 'right', 'fontSize': '12px'}),
+                        html.Td(vs_average or "N/A", style={'padding': '8px 10px', 'textAlign': 'center', 'fontWeight': 'bold', 'fontSize': '11px', 'color': average_color}),
+                        html.Td(vs_median or "N/A", style={'padding': '8px 10px', 'textAlign': 'center', 'fontWeight': 'bold', 'fontSize': '11px', 'color': median_color})
+                    ])
+                )
+    
+    # Table styling
+    table_style = {
+        'backgroundColor': 'white',
+        'border': '1px solid #dee2e6',
+        'borderRadius': '6px',
+        'fontFamily': '"Segoe UI", Arial, sans-serif',
+        'fontSize': '12px',
+        'width': '100%',
+        'boxShadow': '0 1px 3px rgba(0,0,0,0.12)'
+    }
+    
+    header_style = {
+        'backgroundColor': '#f8f9fa',
+        'fontWeight': '600',
+        'borderBottom': '2px solid #dee2e6',
+        'padding': '10px 8px',
+        'textAlign': 'center',
+        'fontSize': '11px',
+        'color': '#495057',
+        'textTransform': 'uppercase',
+        'letterSpacing': '0.3px'
+    }
+    
+    return html.Div([
+        html.H6(f"Peer Group Comparison - {target_ticker}", className="mb-3 fw-bold text-primary", style={"fontSize": "0.9rem"}),
+        html.Table([
+            html.Thead([
+                html.Tr([
+                    html.Th("Metric", style={**header_style, 'textAlign': 'left'}),
+                    html.Th(target_ticker, style=header_style),
+                    html.Th("Peer Avg", style=header_style),
+                    html.Th("Peer Median", style=header_style),
+                    html.Th("vs Avg", style=header_style),
+                    html.Th("vs Median", style=header_style)
+                ])
+            ]),
+            html.Tbody(table_rows)
+        ], style=table_style),
+        html.Small(f"Peer Group: ZETA, BRZE, CXM, DV, IAS, TTD, CRTO, RAMP", 
+                   className="text-muted mt-2 d-block", style={'fontSize': '10px'})
+    ], style={'margin': '20px 0'})
 
 
 if __name__ == '__main__':
