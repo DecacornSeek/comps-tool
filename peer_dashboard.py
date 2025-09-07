@@ -14,9 +14,45 @@ import yfinance as yf
 import numpy as np
 from datetime import datetime
 
-# Initialize Dash app
+# Initialize Dash app with custom CSS
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = "Stock Peer Comparison Dashboard"
+
+# Custom CSS for NVIDIA-style dashboard
+nvidia_style_css = """
+<style>
+.nvidia-dashboard {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.nvidia-score-card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.nvidia-score-card:hover {
+    transform: translateY(-2px);
+}
+
+.nvidia-metrics-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nvidia-progress-bar {
+    border-radius: 10px;
+    background-color: #e9ecef;
+}
+
+.nvidia-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+</style>
+"""
 
 # Load AdTech peer data
 def load_peer_data():
@@ -1458,6 +1494,9 @@ def update_tab_content(active_tab):
 def create_nvidia_style_dashboard(ticker='ZETA'):
     """Create NVIDIA-style comprehensive analysis dashboard"""
     
+    # Get real financial data
+    real_metrics = get_real_nvidia_metrics(ticker)
+    
     # Get basic data
     try:
         peer_df = pd.read_csv('/home/user/webapp/zeta_adtech_analysis_enhanced.csv')
@@ -1465,28 +1504,54 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
     except:
         ticker_data = None
     
-    # Header Section
+    # Get current price and info
+    current_price = "$18.90"
+    price_change = "+2.3% (1D)"
+    company_info = "Technology / AdTech"
+    
+    if real_metrics and 'raw_data' in real_metrics:
+        info = real_metrics['raw_data']['info']
+        if 'currentPrice' in info and info['currentPrice']:
+            current_price = f"${info['currentPrice']:.2f}"
+        elif 'regularMarketPrice' in info and info['regularMarketPrice']:
+            current_price = f"${info['regularMarketPrice']:.2f}"
+        elif ticker_data is not None and pd.notna(ticker_data['Price']):
+            current_price = f"${ticker_data['Price']:.2f}"
+            
+        if 'sector' in info and info['sector']:
+            company_info = f"{info['sector']}"
+            if 'industry' in info and info['industry']:
+                company_info += f" / {info['industry']}"
+    
+    # Enhanced Header Section
+    header_style = {
+        "background": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        "color": "white",
+        "borderRadius": "8px",
+        "boxShadow": "0 4px 8px rgba(0,0,0,0.1)"
+    }
+    
     header_section = dbc.Card([
         dbc.CardBody([
             dbc.Row([
                 dbc.Col([
-                    html.H2(f"{ticker} Corp", className="mb-1"),
+                    html.H2(f"{ticker} Corp", className="mb-2 fw-bold text-white"),
                     html.P([
                         html.Strong("WKN: "), "123456 | ",
                         html.Strong("ISIN: "), f"US{ticker}001 | ",
                         html.Strong("Börse: "), "NASDAQ | ",
-                        html.Strong("Sektor: "), "Technology / AdTech"
-                    ], className="text-muted mb-0")
+                        html.Strong("Sektor: "), company_info
+                    ], className="text-white-50 mb-0", style={"fontSize": "0.9rem"})
                 ], width=8),
                 dbc.Col([
                     html.Div([
-                        html.H4(f"${ticker_data['Price']:.2f}" if ticker_data is not None and pd.notna(ticker_data['Price']) else "$18.90", className="text-primary mb-0"),
-                        html.Small("+2.3% (1D)", className="text-success")
+                        html.H3(current_price, className="text-white mb-0 fw-bold"),
+                        html.Small(price_change, className="text-success")
                     ], className="text-end")
                 ], width=4)
             ])
-        ])
-    ], className="mb-3")
+        ], className="p-4")
+    ], className="mb-4", style=header_style)
     
     # Left Column: Charts
     left_charts = dbc.Col([
@@ -1495,7 +1560,7 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
             dbc.CardHeader("Umsatz- und Gewinnentwicklung (jährlich)"),
             dbc.CardBody([
                 dcc.Graph(
-                    figure=create_mock_revenue_chart(),
+                    figure=create_real_revenue_chart(ticker),
                     style={'height': '250px'}
                 )
             ])
@@ -1506,60 +1571,54 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
             dbc.CardHeader("Aktienkursentwicklung"),
             dbc.CardBody([
                 dcc.Graph(
-                    figure=create_mock_stock_chart(), 
+                    figure=create_real_stock_chart(ticker), 
                     style={'height': '200px'}
                 )
             ])
         ])
     ], width=4)
     
-    # Middle Column: Score Cards
+    # Middle Column: Score Cards (using real data)
+    score_cards_data = real_metrics.get('score_cards', []) if real_metrics else []
+    
+    # Default scores if no real data
+    if not score_cards_data:
+        score_cards_data = [
+            {"title": "QUALITÄTS-CHECK", "score": "10", "max_score": "15", "color": "warning", 
+             "details": ["Daten nicht verfügbar"]},
+            {"title": "Umsatz-Wachs. 2J", "score": "N/A", "max_score": "", "color": "secondary",
+             "details": ["Daten nicht verfügbar"]},
+            {"title": "WACHSTUMS-CHECK", "score": "8", "max_score": "15", "color": "warning",
+             "details": ["Daten nicht verfügbar"]},
+            {"title": "AAQS Score", "score": "6", "max_score": "", "color": "warning", 
+             "details": ["Daten nicht verfügbar"]}
+        ]
+    
     middle_scores = dbc.Col([
-        # Quality Score
-        create_score_card("QUALITÄTS-CHECK", "15", "15", "success", 
-                         ["Umsatzwachstum 5 Jahre: 27.1%", "Stabilität Umsatzwachstum: 31.8%", "EPS-Wachstum 5 Jahre: 44.1%"]),
-        
-        # Growth Score
-        create_score_card("Umsatz-Wachs. 3J", "12.3%", "", "primary",
-                         ["Performance 3 Jahre", "Quarterly Growth"]),
-        
-        # Stability Score  
-        create_score_card("WACHSTUMS-CHECK", "14", "15", "success",
-                         ["Umsatzwachstum (TTM): 67.6%", "Revenue Stability: 13.3%"]),
-        
-        # Overall Score
-        create_score_card("AAQS Score", "10", "", "success", 
-                         ["Gesamtbewertung"])
-                         
+        create_score_card(card["title"], card["score"], card["max_score"], 
+                         card["color"], card["details"]) 
+        for card in score_cards_data                    
     ], width=4)
     
-    # Right Column: Detailed Metrics
+    # Right Column: Detailed Metrics (using real data)
+    detailed_metrics_data = real_metrics.get('detailed_metrics', []) if real_metrics else []
+    
+    # Default metrics if no real data
+    if not detailed_metrics_data:
+        detailed_metrics_data = [
+            ("Wachstum und Stabilität", [
+                ("Umsatzwachstum 2 Jahre", "N/A", 50),
+                ("EPS-Wachstum 2 Jahre", "N/A", 50)
+            ]),
+            ("Rentabilität und Effizienz", [
+                ("Bruttomarge", "N/A", 50),
+                ("Betriebsmarge", "N/A", 50)
+            ])
+        ]
+    
     right_metrics = dbc.Col([
-        create_metrics_section("Wachstum und Stabilität", [
-            ("Umsatzwachstum 5 Jahre", "27.1%", 85),
-            ("Stabilität Umsatzwachstum 5 Jahre", "31.8%", 70),
-            ("EPS-Wachstum 5 Jahre", "44.1%", 90),
-            ("Stabilität EPS-Wachstum 5 Jahre", "71.3%", 75)
-        ]),
-        
-        create_metrics_section("Kursentwicklung und Volatilität", [
-            ("Volatilität", "6.24%", 60),
-            ("Performance 1 Jahr", "80.1%", 95),
-            ("Kunststabilität", "87.0%", 85)
-        ]),
-        
-        create_metrics_section("Sicherheit und Bilanz", [
-            ("Finanzmarktstärke", "36.8%", 70),
-            ("EBIT / Verschuldung", "6.6%", 45),
-            ("Zinsdeckungsgrad", "24.9%", 60)
-        ]),
-        
-        create_metrics_section("Finanzmarktstärke Wachstum", [
-            ("Börsenwert / Verschuldung", "89.5%", 95),
-            ("Umsatz / Verschuldung (Verschuldungsgrad)", "1.71", 80),
-            ("Rule-of-40 TTM", "87.7%", 90)
-        ])
-        
+        create_metrics_section(section_name, metrics) 
+        for section_name, metrics in detailed_metrics_data        
     ], width=4)
     
     return [
@@ -1567,15 +1626,50 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
         dbc.Row([left_charts, middle_scores, right_metrics])
     ]
 
-def create_mock_revenue_chart():
-    """Create mock revenue/earnings bar chart"""
-    years = [2019, 2020, 2021, 2022, 2023, 2024]
-    revenue = [400, 500, 750, 1100, 1250, 1400]
-    earnings = [20, 40, 100, 150, 180, 220]
+def create_real_revenue_chart(ticker):
+    """Create real revenue/earnings bar chart using last 2 years data"""
+    try:
+        stock = yf.Ticker(ticker)
+        financials = stock.financials
+        
+        if not financials.empty and 'Total Revenue' in financials.index:
+            # Get last 2 years of data
+            revenue_data = financials.loc['Total Revenue'].dropna()
+            years = [col.year for col in revenue_data.index[:2]]
+            revenues = [val / 1e9 for val in revenue_data.iloc[:2]]  # Convert to billions
+            
+            # Try to get net income
+            earnings = []
+            if 'Net Income' in financials.index:
+                income_data = financials.loc['Net Income'].dropna()
+                earnings = [val / 1e9 for val in income_data.iloc[:2]]  # Convert to billions
+            else:
+                earnings = [rev * 0.1 for rev in revenues]  # Fallback estimate
+            
+            fig = go.Figure()
+            fig.add_trace(go.Bar(name='Umsatz (Mrd.)', x=years[::-1], y=revenues[::-1], marker_color='lightblue'))
+            fig.add_trace(go.Bar(name='Gewinn (Mrd.)', x=years[::-1], y=earnings[::-1], marker_color='darkblue'))
+            
+            fig.update_layout(
+                barmode='group',
+                title='',
+                showlegend=True,
+                height=250,
+                margin=dict(l=40, r=40, t=20, b=40),
+                font=dict(size=10)
+            )
+            return fig
+    except Exception as e:
+        print(f"Error creating revenue chart for {ticker}: {e}")
+    
+    # Fallback to mock data
+    years = [2023, 2024]
+    revenue = [1.0, 1.2]
+    earnings = [0.1, 0.15]
     
     fig = go.Figure()
-    fig.add_trace(go.Bar(name='Umsatz', x=years, y=revenue, marker_color='lightblue'))
-    fig.add_trace(go.Bar(name='Gewinn', x=years, y=earnings, marker_color='darkblue'))
+    fig.add_trace(go.Bar(name='Umsatz (Mrd.)', x=years, y=revenue, marker_color='lightblue'))
+    fig.add_trace(go.Bar(name='Gewinn (Mrd.)', x=years, y=earnings, marker_color='darkblue'))
     
     fig.update_layout(
         barmode='group',
@@ -1587,11 +1681,39 @@ def create_mock_revenue_chart():
     )
     return fig
 
-def create_mock_stock_chart():
-    """Create mock stock price line chart"""
+def create_real_stock_chart(ticker):
+    """Create real stock price line chart for last year"""
     from datetime import datetime, timedelta
     
-    # Generate mock stock data
+    try:
+        stock = yf.Ticker(ticker)
+        # Get 1 year of stock price data
+        hist = stock.history(period="1y")
+        
+        if not hist.empty:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=hist.index, 
+                y=hist['Close'], 
+                mode='lines', 
+                name='Aktienkurs', 
+                line=dict(color='green', width=2)
+            ))
+            
+            fig.update_layout(
+                title='',
+                showlegend=False,
+                height=200,
+                margin=dict(l=40, r=40, t=20, b=40),
+                font=dict(size=10),
+                xaxis=dict(showgrid=True),
+                yaxis=dict(showgrid=True)
+            )
+            return fig
+    except Exception as e:
+        print(f"Error creating stock chart for {ticker}: {e}")
+    
+    # Fallback to mock data
     dates = pd.date_range(start=datetime.now() - timedelta(days=365), end=datetime.now(), freq='D')
     prices = np.cumsum(np.random.randn(len(dates)) * 0.02) + 100
     prices = prices * (18.90 / prices[-1])  # Normalize to current price
@@ -1614,20 +1736,27 @@ def create_score_card(title, score, max_score="", color="primary", details=[]):
     """Create a score card like in NVIDIA dashboard"""
     
     if max_score:
-        score_display = html.H1(f"{score}/{max_score}", className=f"text-{color} mb-0")
+        score_display = html.H1(f"{score}/{max_score}", className=f"text-{color} mb-0 fw-bold", style={"fontSize": "2.5rem"})
     else:
-        score_display = html.H1(score, className=f"text-{color} mb-0")
+        score_display = html.H1(score, className=f"text-{color} mb-0 fw-bold", style={"fontSize": "2.5rem"})
+    
+    # Enhanced styling for better visual impact
+    card_style = {
+        "borderRadius": "8px",
+        "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+        "border": f"2px solid var(--bs-{color})"
+    }
     
     return dbc.Card([
         dbc.CardBody([
-            html.H6(title, className="card-title text-muted"),
+            html.H6(title, className="card-title text-muted mb-3 fw-bold", style={"fontSize": "0.9rem", "textTransform": "uppercase"}),
             score_display,
-            html.Hr(),
+            html.Hr(className="my-3"),
             html.Div([
-                html.Small(detail, className="d-block text-muted") for detail in details
+                html.Small(detail, className="d-block text-muted mb-1") for detail in details
             ])
-        ], className="text-center")
-    ], className="mb-3", color=color, outline=True)
+        ], className="text-center p-4")
+    ], className="mb-3", style=card_style)
 
 def create_metrics_section(title, metrics):
     """Create a metrics section with progress bars"""
@@ -1646,22 +1775,228 @@ def create_metrics_section(title, metrics):
             html.Div([
                 dbc.Row([
                     dbc.Col([
-                        html.Small(name, className="fw-bold")
-                    ], width=8),
+                        html.Small(name, className="fw-bold text-dark", style={"fontSize": "0.85rem"})
+                    ], width=7),
                     dbc.Col([
-                        html.Small(value, className="text-end")
-                    ], width=4)
-                ]),
-                dbc.Progress(value=percentage, color=color, className="mb-2", style={"height": "8px"})
+                        html.Small(value, className="text-end fw-bold", style={"fontSize": "0.85rem"})
+                    ], width=5)
+                ], className="mb-1"),
+                dbc.Progress(
+                    value=percentage, 
+                    color=color, 
+                    className="mb-3", 
+                    style={"height": "12px", "borderRadius": "6px"}
+                )
             ], className="mb-2")
         )
     
+    # Enhanced card styling
+    card_style = {
+        "borderRadius": "8px",
+        "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+        "border": "1px solid #e0e0e0"
+    }
+    
     return dbc.Card([
         dbc.CardHeader([
-            html.H6(title, className="mb-0")
-        ]),
-        dbc.CardBody(metric_items)
-    ], className="mb-3")
+            html.H6(title, className="mb-0 fw-bold text-primary", style={"fontSize": "1rem"})
+        ], style={"backgroundColor": "#f8f9fa", "borderBottom": "1px solid #e0e0e0"}),
+        dbc.CardBody(metric_items, className="p-4")
+    ], className="mb-3", style=card_style)
+
+def get_real_nvidia_metrics(ticker):
+    """Get real NVIDIA-style metrics using Yahoo Finance data"""
+    
+    try:
+        # Get ticker object
+        stock = yf.Ticker(ticker)
+        
+        # Get current year
+        current_year = datetime.now().year
+        last_year = current_year - 1
+        year_before_last = current_year - 2
+        
+        # Get financial statements
+        financials = stock.financials
+        balance_sheet = stock.balance_sheet
+        cash_flow = stock.cashflow
+        
+        # Get info and statistics
+        info = stock.info
+        
+        # Calculate growth metrics for last 2 years
+        growth_metrics = {}
+        
+        # Revenue growth calculation
+        if not financials.empty and 'Total Revenue' in financials.index:
+            revenue_data = financials.loc['Total Revenue'].dropna()
+            if len(revenue_data) >= 2:
+                recent_revenue = revenue_data.iloc[:2]
+                if len(recent_revenue) == 2:
+                    revenue_growth = ((recent_revenue.iloc[0] - recent_revenue.iloc[1]) / recent_revenue.iloc[1]) * 100
+                    growth_metrics['revenue_growth_yoy'] = revenue_growth
+        
+        # Get growth from info if available
+        if 'revenueGrowth' in info and info['revenueGrowth'] is not None:
+            growth_metrics['revenue_growth_ttm'] = info['revenueGrowth'] * 100
+            
+        if 'earningsGrowth' in info and info['earningsGrowth'] is not None:
+            growth_metrics['earnings_growth'] = info['earningsGrowth'] * 100
+        
+        # Build score cards with real data
+        score_cards = []
+        
+        # Quality Check Score (based on margins and ratios)
+        quality_score = 0
+        quality_details = []
+        
+        if 'grossMargins' in info and info['grossMargins'] is not None:
+            gross_margin = info['grossMargins'] * 100
+            quality_details.append(f"Bruttomarge: {gross_margin:.1f}%")
+            if gross_margin > 60: quality_score += 5
+            elif gross_margin > 40: quality_score += 3
+            elif gross_margin > 20: quality_score += 1
+        
+        if 'operatingMargins' in info and info['operatingMargins'] is not None:
+            op_margin = info['operatingMargins'] * 100
+            quality_details.append(f"Betriebsmarge: {op_margin:.1f}%")
+            if op_margin > 20: quality_score += 5
+            elif op_margin > 10: quality_score += 3
+            elif op_margin > 5: quality_score += 1
+            
+        if 'returnOnEquity' in info and info['returnOnEquity'] is not None:
+            roe = info['returnOnEquity'] * 100
+            quality_details.append(f"Eigenkapitalrendite: {roe:.1f}%")
+            if roe > 20: quality_score += 5
+            elif roe > 15: quality_score += 3
+            elif roe > 10: quality_score += 1
+        
+        score_cards.append({
+            'title': 'QUALITÄTS-CHECK',
+            'score': str(quality_score),
+            'max_score': '15',
+            'color': 'success' if quality_score >= 12 else ('warning' if quality_score >= 8 else 'danger'),
+            'details': quality_details
+        })
+        
+        # Revenue Growth (use real data)
+        revenue_growth = None
+        if 'revenue_growth_ttm' in growth_metrics:
+            revenue_growth = growth_metrics['revenue_growth_ttm']
+        elif 'revenue_growth_yoy' in growth_metrics:
+            revenue_growth = growth_metrics['revenue_growth_yoy']
+        elif 'revenueGrowth' in info and info['revenueGrowth'] is not None:
+            revenue_growth = info['revenueGrowth'] * 100
+            
+        if revenue_growth is not None:
+            score_cards.append({
+                'title': 'Umsatz-Wachs. 2J',
+                'score': f"{revenue_growth:.1f}%",
+                'max_score': '',
+                'color': 'success' if revenue_growth > 15 else ('primary' if revenue_growth > 5 else 'warning'),
+                'details': ['Performance letztes Jahr', 'YoY Growth Rate']
+            })
+        
+        # Growth Check Score
+        growth_score = 0
+        growth_details = []
+        
+        if revenue_growth is not None:
+            growth_details.append(f"Umsatzwachstum: {revenue_growth:.1f}%")
+            if revenue_growth > 20: growth_score += 7
+            elif revenue_growth > 10: growth_score += 5
+            elif revenue_growth > 0: growth_score += 3
+        
+        if 'earnings_growth' in growth_metrics:
+            earnings_growth = growth_metrics['earnings_growth']
+            growth_details.append(f"EPS-Wachstum: {earnings_growth:.1f}%")
+            if earnings_growth > 15: growth_score += 8
+            elif earnings_growth > 5: growth_score += 5
+            elif earnings_growth > 0: growth_score += 2
+            
+        score_cards.append({
+            'title': 'WACHSTUMS-CHECK',
+            'score': str(growth_score),
+            'max_score': '15',
+            'color': 'success' if growth_score >= 12 else ('warning' if growth_score >= 8 else 'danger'),
+            'details': growth_details
+        })
+        
+        # Overall AAQS Score (combination of quality and growth)
+        overall_score = min(10, (quality_score + growth_score) // 3)
+        score_cards.append({
+            'title': 'AAQS Score',
+            'score': str(overall_score),
+            'max_score': '',
+            'color': 'success' if overall_score >= 8 else ('warning' if overall_score >= 6 else 'danger'),
+            'details': ['Gesamtbewertung']
+        })
+        
+        # Detailed Metrics with Progress Bars
+        detailed_metrics = []
+        
+        # Growth and Stability Section
+        growth_section = []
+        if revenue_growth is not None:
+            percentage = min(100, max(0, (revenue_growth + 20) * 2))  # Scale -10 to 40% as 0 to 100%
+            growth_section.append(('Umsatzwachstum 2 Jahre', f'{revenue_growth:.1f}%', percentage))
+            
+        if 'earnings_growth' in growth_metrics:
+            earnings_growth = growth_metrics['earnings_growth']
+            percentage = min(100, max(0, (earnings_growth + 20) * 2))
+            growth_section.append(('EPS-Wachstum 2 Jahre', f'{earnings_growth:.1f}%', percentage))
+        
+        if growth_section:
+            detailed_metrics.append(('Wachstum und Stabilität', growth_section))
+        
+        # Profitability Section  
+        profitability_section = []
+        if 'grossMargins' in info and info['grossMargins'] is not None:
+            gross_margin = info['grossMargins'] * 100
+            percentage = min(100, gross_margin)
+            profitability_section.append(('Bruttomarge', f'{gross_margin:.1f}%', percentage))
+            
+        if 'operatingMargins' in info and info['operatingMargins'] is not None:
+            op_margin = info['operatingMargins'] * 100
+            percentage = min(100, max(0, op_margin * 2))  # Scale 0-50% as 0-100%
+            profitability_section.append(('Betriebsmarge', f'{op_margin:.1f}%', percentage))
+            
+        if 'returnOnEquity' in info and info['returnOnEquity'] is not None:
+            roe = info['returnOnEquity'] * 100
+            percentage = min(100, max(0, roe * 3))  # Scale 0-33% as 0-100%
+            profitability_section.append(('Eigenkapitalrendite', f'{roe:.1f}%', percentage))
+            
+        if profitability_section:
+            detailed_metrics.append(('Rentabilität und Effizienz', profitability_section))
+            
+        # Financial Health Section
+        financial_section = []
+        if 'currentRatio' in info and info['currentRatio'] is not None:
+            current_ratio = info['currentRatio']
+            percentage = min(100, max(0, (current_ratio - 0.5) * 50))  # Scale 0.5-2.5 as 0-100%
+            financial_section.append(('Liquiditätsgrad', f'{current_ratio:.2f}', percentage))
+            
+        if 'debtToEquity' in info and info['debtToEquity'] is not None:
+            debt_equity = info['debtToEquity']
+            percentage = max(0, 100 - debt_equity * 20)  # Lower debt is better
+            financial_section.append(('Verschuldungsgrad', f'{debt_equity:.2f}', percentage))
+            
+        if financial_section:
+            detailed_metrics.append(('Sicherheit und Bilanz', financial_section))
+        
+        return {
+            'score_cards': score_cards,
+            'detailed_metrics': detailed_metrics,
+            'raw_data': {
+                'financials': financials,
+                'info': info,
+                'growth_metrics': growth_metrics
+            }
+        }
+        
+    except Exception as e:
+        print(f"Error fetching NVIDIA-style metrics for {ticker}: {e}")
+        return None
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8051)
