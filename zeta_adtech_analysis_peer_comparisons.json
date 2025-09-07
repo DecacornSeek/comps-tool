@@ -1,0 +1,1020 @@
+{
+  "ZETA": {
+    "ticker": "ZETA",
+    "comparison_field": "Industry",
+    "comparison_value": "Software - Infrastructure",
+    "peer_count": 1,
+    "metrics": {
+      "P/B": {
+        "ticker_value": 6.6643157,
+        "peer_mean": 4.31430065,
+        "peer_median": 4.31430065,
+        "peer_std": 3.3234231554908873,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 54.47035894450241,
+        "vs_median_percent": 54.47035894450241
+      },
+      "P/S": {
+        "ticker_value": 3.8924224,
+        "peer_mean": 3.1640167999999997,
+        "peer_median": 3.1640167999999997,
+        "peer_std": 1.030121078428512,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 23.021546535403996,
+        "vs_median_percent": 23.021546535403996
+      },
+      "EV/EBITDA": {
+        "ticker_value": 161.408,
+        "peer_mean": 98.81549999999999,
+        "peer_median": 98.81549999999999,
+        "peer_std": 88.51916240283795,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 63.34279541165102,
+        "vs_median_percent": 63.34279541165102
+      },
+      "ROE": {
+        "ticker_value": -0.08211,
+        "peer_mean": -0.0343500005,
+        "peer_median": -0.0343500005,
+        "peer_std": 0.06754283903183224,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": 139.03929783057794,
+        "vs_median_percent": 139.03929783057794
+      },
+      "ROA": {
+        "ticker_value": -0.01135,
+        "peer_mean": 0.0010099999999999996,
+        "peer_median": 0.0010099999999999996,
+        "peer_std": 0.017479679630931454,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -1223.762376237624,
+        "vs_median_percent": -1223.762376237624
+      },
+      "ProfitMargin": {
+        "ticker_value": -0.03162,
+        "peer_mean": -0.0063750000000000005,
+        "peer_median": -0.0063750000000000005,
+        "peer_std": 0.03570182138210879,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": 396.00000000000006,
+        "vs_median_percent": 396.00000000000006
+      },
+      "OperatingMargin": {
+        "ticker_value": -0.016549999,
+        "peer_mean": 0.011345000499999999,
+        "peer_median": 0.011345000499999999,
+        "peer_std": 0.0394494866152907,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -245.87922671312353,
+        "vs_median_percent": -245.87922671312353
+      },
+      "RevenueGrowth": {
+        "ticker_value": 0.354,
+        "peer_mean": 0.23049999999999998,
+        "peer_median": 0.23049999999999998,
+        "peer_std": 0.17465537495307723,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 53.579175704989154,
+        "vs_median_percent": 53.579175704989154
+      },
+      "DebtToEquity": {
+        "ticker_value": 30.997,
+        "peer_mean": 17.3505,
+        "peer_median": 17.3505,
+        "peer_std": 19.29906537892444,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 78.65191204864412,
+        "vs_median_percent": 78.65191204864412
+      },
+      "CurrentRatio": {
+        "ticker_value": 3.251,
+        "peer_mean": 3.0475,
+        "peer_median": 3.0475,
+        "peer_std": 0.28779245994292485,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 6.677604593929451,
+        "vs_median_percent": 6.677604593929451
+      },
+      "FCF Yield": {
+        "ticker_value": 0.031197856564084,
+        "peer_mean": 0.0561421290788,
+        "peer_median": 0.0561421290788,
+        "peer_std": 0.035276528493841795,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -44.43057811310416,
+        "vs_median_percent": -44.43057811310416
+      },
+      "Beta": {
+        "ticker_value": 1.307,
+        "peer_mean": 1.113,
+        "peer_median": 1.113,
+        "peer_std": 0.27435743110038036,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 17.430368373764598,
+        "vs_median_percent": 17.430368373764598
+      }
+    }
+  },
+  "BRZE": {
+    "ticker": "BRZE",
+    "comparison_field": "Industry",
+    "comparison_value": "Software - Application",
+    "peer_count": 2,
+    "metrics": {
+      "P/B": {
+        "ticker_value": 5.7927732,
+        "peer_mean": 3.855484,
+        "peer_median": 3.5227785,
+        "peer_std": 1.7942228463143284,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 50.24762649773673,
+        "vs_median_percent": 64.43762217806201
+      },
+      "P/S": {
+        "ticker_value": 5.3405004,
+        "peer_mean": 3.6999023,
+        "peer_median": 3.4363165,
+        "peer_std": 1.5259755034135605,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 44.34166004869911,
+        "vs_median_percent": 55.41351909813894
+      },
+      "EV/EBITDA": {
+        "ticker_value": -28.164,
+        "peer_mean": 6.223333333333333,
+        "peer_median": 18.677,
+        "peer_std": 30.155167390238994,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -552.5549009105517,
+        "vs_median_percent": -250.79509557209403
+      },
+      "ROE": {
+        "ticker_value": -0.20631,
+        "peer_mean": 0.026380003333333332,
+        "peer_median": 0.04803,
+        "peer_std": 0.22265583803349967,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -882.0696509894301,
+        "vs_median_percent": -529.5440349781386
+      },
+      "ROA": {
+        "ticker_value": -0.082320005,
+        "peer_mean": -0.004196668333333334,
+        "peer_median": 0.02848,
+        "peer_std": 0.06795741331120549,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": 1861.5561312326722,
+        "vs_median_percent": -389.0449613764045
+      },
+      "ProfitMargin": {
+        "ticker_value": -0.16618,
+        "peer_mean": 0.018020000000000005,
+        "peer_median": 0.07381,
+        "peer_std": 0.16360209686920277,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -1022.1975582685902,
+        "vs_median_percent": -325.1456442216502
+      },
+      "OperatingMargin": {
+        "ticker_value": -0.20739001,
+        "peer_mean": -0.02120667133333334,
+        "peer_median": 0.071669996,
+        "peer_std": 0.1612396443920044,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": 877.9470183706653,
+        "vs_median_percent": -389.36796647791084
+      },
+      "RevenueGrowth": {
+        "ticker_value": 0.238,
+        "peer_mean": 0.17533333333333334,
+        "peer_median": 0.213,
+        "peer_std": 0.0877857239722572,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 35.74144486692014,
+        "vs_median_percent": 11.737089201877932
+      },
+      "DebtToEquity": {
+        "ticker_value": 14.093,
+        "peer_mean": 10.824,
+        "peer_median": 9.507,
+        "peer_std": 2.8487851796862467,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 30.20140428677014,
+        "vs_median_percent": 48.23814031766068
+      },
+      "CurrentRatio": {
+        "ticker_value": 1.37,
+        "peer_mean": 2.4436666666666667,
+        "peer_median": 1.553,
+        "peer_std": 1.703621534652968,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -43.93670713408812,
+        "vs_median_percent": -11.783644558918212
+      },
+      "FCF Yield": {
+        "ticker_value": 0.0360493900940563,
+        "peer_mean": 0.05506444052184043,
+        "peer_median": 0.0617168529121042,
+        "peer_std": 0.016713191685433004,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -34.53235926412821,
+        "vs_median_percent": -41.58906620628071
+      },
+      "Beta": {
+        "ticker_value": 1.1,
+        "peer_mean": 0.9883333333333333,
+        "peer_median": 1.059,
+        "peer_std": 0.1592304409757548,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 11.298482293423286,
+        "vs_median_percent": 3.8715769593956706
+      }
+    }
+  },
+  "CXM": {
+    "ticker": "CXM",
+    "comparison_field": "Industry",
+    "comparison_value": "Software - Application",
+    "peer_count": 2,
+    "metrics": {
+      "P/E (TTM)": {
+        "ticker_value": 17.75,
+        "peer_mean": 33.068548,
+        "peer_median": 33.068548,
+        "peer_std": 21.663698337463252,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -46.323618442515226,
+        "vs_median_percent": -46.323618442515226
+      },
+      "P/B": {
+        "ticker_value": 3.5227785,
+        "peer_mean": 3.855484,
+        "peer_median": 3.5227785,
+        "peer_std": 1.7942228463143284,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -8.62940943342004,
+        "vs_median_percent": 0.0
+      },
+      "P/S": {
+        "ticker_value": 2.32289,
+        "peer_mean": 3.6999023,
+        "peer_median": 3.4363165,
+        "peer_std": 1.5259755034135605,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -37.21753139265326,
+        "vs_median_percent": -32.40174471705386
+      },
+      "EV/EBITDA": {
+        "ticker_value": 28.157,
+        "peer_mean": 6.223333333333333,
+        "peer_median": 18.677,
+        "peer_std": 30.155167390238994,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 352.4424209962507,
+        "vs_median_percent": 50.757616319537405
+      },
+      "ROE": {
+        "ticker_value": 0.23742001,
+        "peer_mean": 0.026380003333333332,
+        "peer_median": 0.04803,
+        "peer_std": 0.22265583803349967,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 799.9999241849982,
+        "vs_median_percent": 394.3160732875286
+      },
+      "ROA": {
+        "ticker_value": 0.02848,
+        "peer_mean": -0.004196668333333334,
+        "peer_median": 0.02848,
+        "peer_std": 0.06795741331120549,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -778.6335668651441,
+        "vs_median_percent": 0.0
+      },
+      "ProfitMargin": {
+        "ticker_value": 0.14643,
+        "peer_mean": 0.018020000000000005,
+        "peer_median": 0.07381,
+        "peer_std": 0.16360209686920277,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 712.5971143174249,
+        "vs_median_percent": 98.38775233708171
+      },
+      "OperatingMargin": {
+        "ticker_value": 0.0721,
+        "peer_mean": -0.02120667133333334,
+        "peer_median": 0.071669996,
+        "peer_std": 0.1612396443920044,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": -439.9873505214883,
+        "vs_median_percent": 0.5999777089425228
+      },
+      "RevenueGrowth": {
+        "ticker_value": 0.075,
+        "peer_mean": 0.17533333333333334,
+        "peer_median": 0.213,
+        "peer_std": 0.0877857239722572,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -57.224334600760464,
+        "vs_median_percent": -64.7887323943662
+      },
+      "EarningsGrowth": {
+        "ticker_value": 6.026,
+        "peer_mean": 3.138,
+        "peer_median": 3.138,
+        "peer_std": 4.084248768133499,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 92.03314212874443,
+        "vs_median_percent": 92.03314212874443
+      },
+      "DebtToEquity": {
+        "ticker_value": 8.872,
+        "peer_mean": 10.824,
+        "peer_median": 9.507,
+        "peer_std": 2.8487851796862467,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -18.033998521803397,
+        "vs_median_percent": -6.679288944987902
+      },
+      "CurrentRatio": {
+        "ticker_value": 1.553,
+        "peer_mean": 2.4436666666666667,
+        "peer_median": 1.553,
+        "peer_std": 1.703621534652968,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -36.44796071477289,
+        "vs_median_percent": 0.0
+      },
+      "FCF Yield": {
+        "ticker_value": 0.0617168529121042,
+        "peer_mean": 0.05506444052184043,
+        "peer_median": 0.0617168529121042,
+        "peer_std": 0.016713191685433004,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 12.081140436948951,
+        "vs_median_percent": 0.0
+      },
+      "Beta": {
+        "ticker_value": 0.806,
+        "peer_mean": 0.9883333333333333,
+        "peer_median": 1.059,
+        "peer_std": 0.1592304409757548,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -18.448566610455302,
+        "vs_median_percent": -23.89046270066099
+      }
+    }
+  },
+  "DV": {
+    "ticker": "DV",
+    "comparison_field": "Industry",
+    "comparison_value": "Software - Application",
+    "peer_count": 2,
+    "metrics": {
+      "P/E (TTM)": {
+        "ticker_value": 48.387096,
+        "peer_mean": 33.068548,
+        "peer_median": 33.068548,
+        "peer_std": 21.663698337463252,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 46.323618442515226,
+        "vs_median_percent": 46.323618442515226
+      },
+      "P/B": {
+        "ticker_value": 2.2509003,
+        "peer_mean": 3.855484,
+        "peer_median": 3.5227785,
+        "peer_std": 1.7942228463143284,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -41.618217064316696,
+        "vs_median_percent": -36.10440452046587
+      },
+      "P/S": {
+        "ticker_value": 3.4363165,
+        "peer_mean": 3.6999023,
+        "peer_median": 3.4363165,
+        "peer_std": 1.5259755034135605,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -7.124128656045863,
+        "vs_median_percent": 0.0
+      },
+      "EV/EBITDA": {
+        "ticker_value": 18.677,
+        "peer_mean": 6.223333333333333,
+        "peer_median": 18.677,
+        "peer_std": 30.155167390238994,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 200.11247991430105,
+        "vs_median_percent": 0.0
+      },
+      "ROE": {
+        "ticker_value": 0.04803,
+        "peer_mean": 0.026380003333333332,
+        "peer_median": 0.04803,
+        "peer_std": 0.22265583803349967,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 82.06972680443181,
+        "vs_median_percent": 0.0
+      },
+      "ROA": {
+        "ticker_value": 0.04125,
+        "peer_mean": -0.004196668333333334,
+        "peer_median": 0.02848,
+        "peer_std": 0.06795741331120549,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": -1082.922564367528,
+        "vs_median_percent": 44.83848314606743
+      },
+      "ProfitMargin": {
+        "ticker_value": 0.07381,
+        "peer_mean": 0.018020000000000005,
+        "peer_median": 0.07381,
+        "peer_std": 0.16360209686920277,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 309.6004439511653,
+        "vs_median_percent": 0.0
+      },
+      "OperatingMargin": {
+        "ticker_value": 0.071669996,
+        "peer_mean": -0.02120667133333334,
+        "peer_median": 0.071669996,
+        "peer_std": 0.1612396443920044,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -437.95966784917704,
+        "vs_median_percent": 0.0
+      },
+      "RevenueGrowth": {
+        "ticker_value": 0.213,
+        "peer_mean": 0.17533333333333334,
+        "peer_median": 0.213,
+        "peer_std": 0.0877857239722572,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 21.482889733840295,
+        "vs_median_percent": 0.0
+      },
+      "EarningsGrowth": {
+        "ticker_value": 0.25,
+        "peer_mean": 3.138,
+        "peer_median": 3.138,
+        "peer_std": 4.084248768133499,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -92.03314212874443,
+        "vs_median_percent": -92.03314212874443
+      },
+      "DebtToEquity": {
+        "ticker_value": 9.507,
+        "peer_mean": 10.824,
+        "peer_median": 9.507,
+        "peer_std": 2.8487851796862467,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -12.167405764966741,
+        "vs_median_percent": 0.0
+      },
+      "CurrentRatio": {
+        "ticker_value": 4.408,
+        "peer_mean": 2.4436666666666667,
+        "peer_median": 1.553,
+        "peer_std": 1.703621534652968,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 80.38466784886101,
+        "vs_median_percent": 183.8377334191887
+      },
+      "FCF Yield": {
+        "ticker_value": 0.0674270785593608,
+        "peer_mean": 0.05506444052184043,
+        "peer_median": 0.0617168529121042,
+        "peer_std": 0.016713191685433004,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 22.451218827179257,
+        "vs_median_percent": 9.252295568908826
+      },
+      "Beta": {
+        "ticker_value": 1.059,
+        "peer_mean": 0.9883333333333333,
+        "peer_median": 1.059,
+        "peer_std": 0.1592304409757548,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 7.150084317032039,
+        "vs_median_percent": 0.0
+      }
+    }
+  },
+  "IAS": {
+    "ticker": "IAS",
+    "comparison_field": "Industry",
+    "comparison_value": "Advertising Agencies",
+    "peer_count": 2,
+    "metrics": {
+      "P/E (TTM)": {
+        "ticker_value": 25.647058,
+        "peer_mean": 32.74196033333334,
+        "peer_median": 25.647058,
+        "peer_std": 27.149939355069773,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -21.669143390019592,
+        "vs_median_percent": 0.0
+      },
+      "P/B": {
+        "ticker_value": 1.3423647,
+        "peer_mean": 3.975172466666667,
+        "peer_median": 1.3423647,
+        "peer_std": 4.753116537495779,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -66.23128401959313,
+        "vs_median_percent": 0.0
+      },
+      "P/S": {
+        "ticker_value": 2.5427492,
+        "peer_mean": 4.224344366666666,
+        "peer_median": 2.5427492,
+        "peer_std": 4.670655644170743,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -39.80724630159768,
+        "vs_median_percent": 0.0
+      },
+      "EV/EBITDA": {
+        "ticker_value": 12.618,
+        "peer_mean": 19.957333333333334,
+        "peer_median": 12.618,
+        "peer_std": 20.85040825339718,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -36.775120256547304,
+        "vs_median_percent": 0.0
+      },
+      "ROE": {
+        "ticker_value": 0.055180002,
+        "peer_mean": 0.11563666733333333,
+        "peer_median": 0.12816,
+        "peer_std": 0.05526955140418638,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -52.281570134723296,
+        "vs_median_percent": -56.94444288389513
+      },
+      "ROA": {
+        "ticker_value": 0.03917,
+        "peer_mean": 0.05002,
+        "peer_median": 0.05341,
+        "peer_std": 0.009614213436365971,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -21.69132347061175,
+        "vs_median_percent": -26.66167384384946
+      },
+      "ProfitMargin": {
+        "ticker_value": 0.097849995,
+        "peer_mean": 0.10790666333333333,
+        "peer_median": 0.097849995,
+        "peer_std": 0.043662442354957746,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -9.31978436055185,
+        "vs_median_percent": 0.0
+      },
+      "OperatingMargin": {
+        "ticker_value": 0.10199001,
+        "peer_mean": 0.11111667333333332,
+        "peer_median": 0.10199001,
+        "peer_std": 0.05317075242555847,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -8.213585827893437,
+        "vs_median_percent": 0.0
+      },
+      "RevenueGrowth": {
+        "ticker_value": 0.157,
+        "peer_mean": 0.12266666666666666,
+        "peer_median": 0.157,
+        "peer_std": 0.08675444272965697,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 27.989130434782616,
+        "vs_median_percent": 0.0
+      },
+      "EarningsGrowth": {
+        "ticker_value": 1.075,
+        "peer_mean": 0.3273333333333333,
+        "peer_median": 0.059,
+        "peer_std": 0.656036838396544,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 228.41140529531572,
+        "vs_median_percent": 1722.0338983050847
+      },
+      "DebtToEquity": {
+        "ticker_value": 2.59,
+        "peer_mean": 8.982333333333333,
+        "peer_median": 11.613,
+        "peer_std": 5.5647312903080355,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -71.16562140498016,
+        "vs_median_percent": -77.69740807715492
+      },
+      "CurrentRatio": {
+        "ticker_value": 3.644,
+        "peer_mean": 2.1963333333333335,
+        "peer_median": 1.714,
+        "peer_std": 1.2767640084735055,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 65.91288511154954,
+        "vs_median_percent": 112.60210035005835
+      },
+      "FCF Yield": {
+        "ticker_value": 0.0856262228992193,
+        "peer_mean": 0.09158991174935822,
+        "peer_median": 0.0856262228992193,
+        "peer_std": 0.06365031160914196,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -6.511294460528524,
+        "vs_median_percent": 0.0
+      },
+      "Beta": {
+        "ticker_value": 1.554,
+        "peer_mean": 1.1266666666666667,
+        "peer_median": 1.357,
+        "peer_std": 0.5780106688750073,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 37.928994082840234,
+        "vs_median_percent": 14.517317612380257
+      }
+    }
+  },
+  "TTD": {
+    "ticker": "TTD",
+    "comparison_field": "Industry",
+    "comparison_value": "Advertising Agencies",
+    "peer_count": 2,
+    "metrics": {
+      "P/E (TTM)": {
+        "ticker_value": 62.73494,
+        "peer_mean": 32.74196033333334,
+        "peer_median": 25.647058,
+        "peer_std": 27.149939355069773,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 91.60410482854307,
+        "vs_median_percent": 144.6087188635827
+      },
+      "P/B": {
+        "ticker_value": 9.462111,
+        "peer_mean": 3.975172466666667,
+        "peer_median": 1.3423647,
+        "peer_std": 4.753116537495779,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 138.0302006854646,
+        "vs_median_percent": 604.8837771136264
+      },
+      "P/S": {
+        "ticker_value": 9.502957,
+        "peer_mean": 4.224344366666666,
+        "peer_median": 2.5427492,
+        "peer_std": 4.670655644170743,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 124.9569678785105,
+        "vs_median_percent": 273.7276566638975
+      },
+      "EV/EBITDA": {
+        "ticker_value": 43.485,
+        "peer_mean": 19.957333333333334,
+        "peer_median": 12.618,
+        "peer_std": 20.85040825339718,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 117.88983164083375,
+        "vs_median_percent": 244.6267237280076
+      },
+      "ROE": {
+        "ticker_value": 0.16357,
+        "peer_mean": 0.11563666733333333,
+        "peer_median": 0.12816,
+        "peer_std": 0.05526955140418638,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 41.4516725291766,
+        "vs_median_percent": 27.629525593008736
+      },
+      "ROA": {
+        "ticker_value": 0.05341,
+        "peer_mean": 0.05002,
+        "peer_median": 0.05341,
+        "peer_std": 0.009614213436365971,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 6.777289084366248,
+        "vs_median_percent": 0.0
+      },
+      "ProfitMargin": {
+        "ticker_value": 0.15572,
+        "peer_mean": 0.10790666333333333,
+        "peer_median": 0.097849995,
+        "peer_std": 0.043662442354957746,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 44.30990190009582,
+        "vs_median_percent": 59.1415513102479
+      },
+      "OperatingMargin": {
+        "ticker_value": 0.16826001,
+        "peer_mean": 0.11111667333333332,
+        "peer_median": 0.10199001,
+        "peer_std": 0.05317075242555847,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 51.42642859298464,
+        "vs_median_percent": 64.97695215443157
+      },
+      "RevenueGrowth": {
+        "ticker_value": 0.187,
+        "peer_mean": 0.12266666666666666,
+        "peer_median": 0.157,
+        "peer_std": 0.08675444272965697,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 52.44565217391305,
+        "vs_median_percent": 19.108280254777068
+      },
+      "EarningsGrowth": {
+        "ticker_value": 0.059,
+        "peer_mean": 0.3273333333333333,
+        "peer_median": 0.059,
+        "peer_std": 0.656036838396544,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -81.9755600814664,
+        "vs_median_percent": 0.0
+      },
+      "DebtToEquity": {
+        "ticker_value": 12.744,
+        "peer_mean": 8.982333333333333,
+        "peer_median": 11.613,
+        "peer_std": 5.5647312903080355,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 41.878502245147885,
+        "vs_median_percent": 9.739085507620771
+      },
+      "CurrentRatio": {
+        "ticker_value": 1.714,
+        "peer_mean": 2.1963333333333335,
+        "peer_median": 1.714,
+        "peer_std": 1.2767640084735055,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": -21.960843830626807,
+        "vs_median_percent": 0.0
+      },
+      "FCF Yield": {
+        "ticker_value": 0.0311313275865397,
+        "peer_mean": 0.09158991174935822,
+        "peer_median": 0.0856262228992193,
+        "peer_std": 0.06365031160914196,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -66.01009107669782,
+        "vs_median_percent": -63.64276440970569
+      },
+      "Beta": {
+        "ticker_value": 1.357,
+        "peer_mean": 1.1266666666666667,
+        "peer_median": 1.357,
+        "peer_std": 0.5780106688750073,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 20.443786982248515,
+        "vs_median_percent": 0.0
+      }
+    }
+  },
+  "CRTO": {
+    "ticker": "CRTO",
+    "comparison_field": "Industry",
+    "comparison_value": "Advertising Agencies",
+    "peer_count": 2,
+    "metrics": {
+      "P/E (TTM)": {
+        "ticker_value": 9.843883,
+        "peer_mean": 32.74196033333334,
+        "peer_median": 25.647058,
+        "peer_std": 27.149939355069773,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -69.93496143852353,
+        "vs_median_percent": -61.617886152867904
+      },
+      "P/B": {
+        "ticker_value": 1.1210417,
+        "peer_mean": 3.975172466666667,
+        "peer_median": 1.3423647,
+        "peer_std": 4.753116537495779,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -71.79891666587145,
+        "vs_median_percent": -16.487546193668543
+      },
+      "P/S": {
+        "ticker_value": 0.6273269,
+        "peer_mean": 4.224344366666666,
+        "peer_median": 2.5427492,
+        "peer_std": 4.670655644170743,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -85.1497215769128,
+        "vs_median_percent": -75.32879373239012
+      },
+      "EV/EBITDA": {
+        "ticker_value": 3.769,
+        "peer_mean": 19.957333333333334,
+        "peer_median": 12.618,
+        "peer_std": 20.85040825339718,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -81.11471138428647,
+        "vs_median_percent": -70.12997305436677
+      },
+      "ROE": {
+        "ticker_value": 0.12816,
+        "peer_mean": 0.11563666733333333,
+        "peer_median": 0.12816,
+        "peer_std": 0.05526955140418638,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 10.829897605546696,
+        "vs_median_percent": 0.0
+      },
+      "ROA": {
+        "ticker_value": 0.05748,
+        "peer_mean": 0.05002,
+        "peer_median": 0.05341,
+        "peer_std": 0.009614213436365971,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 14.914034386245504,
+        "vs_median_percent": 7.620295824751927
+      },
+      "ProfitMargin": {
+        "ticker_value": 0.070149995,
+        "peer_mean": 0.10790666333333333,
+        "peer_median": 0.097849995,
+        "peer_std": 0.043662442354957746,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -34.99011753954397,
+        "vs_median_percent": -28.308637113369283
+      },
+      "OperatingMargin": {
+        "ticker_value": 0.0631,
+        "peer_mean": 0.11111667333333332,
+        "peer_median": 0.10199001,
+        "peer_std": 0.05317075242555847,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -43.21284276509117,
+        "vs_median_percent": -38.131195398451275
+      },
+      "RevenueGrowth": {
+        "ticker_value": 0.024,
+        "peer_mean": 0.12266666666666666,
+        "peer_median": 0.157,
+        "peer_std": 0.08675444272965697,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -80.43478260869564,
+        "vs_median_percent": -84.71337579617835
+      },
+      "EarningsGrowth": {
+        "ticker_value": -0.152,
+        "peer_mean": 0.3273333333333333,
+        "peer_median": 0.059,
+        "peer_std": 0.656036838396544,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -146.4358452138493,
+        "vs_median_percent": -357.6271186440678
+      },
+      "DebtToEquity": {
+        "ticker_value": 11.613,
+        "peer_mean": 8.982333333333333,
+        "peer_median": 11.613,
+        "peer_std": 5.5647312903080355,
+        "percentile_rank": 33.33333333333333,
+        "vs_mean_percent": 29.287119159832265,
+        "vs_median_percent": 0.0
+      },
+      "CurrentRatio": {
+        "ticker_value": 1.231,
+        "peer_mean": 2.1963333333333335,
+        "peer_median": 1.714,
+        "peer_std": 1.2767640084735055,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -43.95204128092275,
+        "vs_median_percent": -28.179696616102678
+      },
+      "FCF Yield": {
+        "ticker_value": 0.1580121847623157,
+        "peer_mean": 0.09158991174935822,
+        "peer_median": 0.0856262228992193,
+        "peer_std": 0.06365031160914196,
+        "percentile_rank": 66.66666666666666,
+        "vs_mean_percent": 72.5213855372264,
+        "vs_median_percent": 84.53714225873719
+      },
+      "Beta": {
+        "ticker_value": 0.469,
+        "peer_mean": 1.1266666666666667,
+        "peer_median": 1.357,
+        "peer_std": 0.5780106688750073,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -58.372781065088766,
+        "vs_median_percent": -65.43846720707444
+      }
+    }
+  },
+  "RAMP": {
+    "ticker": "RAMP",
+    "comparison_field": "Industry",
+    "comparison_value": "Software - Infrastructure",
+    "peer_count": 1,
+    "metrics": {
+      "P/B": {
+        "ticker_value": 1.9642856,
+        "peer_mean": 4.31430065,
+        "peer_median": 4.31430065,
+        "peer_std": 3.3234231554908873,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -54.470358944502394,
+        "vs_median_percent": -54.470358944502394
+      },
+      "P/S": {
+        "ticker_value": 2.4356112,
+        "peer_mean": 3.1640167999999997,
+        "peer_median": 3.1640167999999997,
+        "peer_std": 1.030121078428512,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -23.02154653540398,
+        "vs_median_percent": -23.02154653540398
+      },
+      "EV/EBITDA": {
+        "ticker_value": 36.223,
+        "peer_mean": 98.81549999999999,
+        "peer_median": 98.81549999999999,
+        "peer_std": 88.51916240283795,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -63.342795411651,
+        "vs_median_percent": -63.342795411651
+      },
+      "ROE": {
+        "ticker_value": 0.013409999,
+        "peer_mean": -0.0343500005,
+        "peer_median": -0.0343500005,
+        "peer_std": 0.06754283903183224,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": -139.0392978305779,
+        "vs_median_percent": -139.0392978305779
+      },
+      "ROA": {
+        "ticker_value": 0.01337,
+        "peer_mean": 0.0010099999999999996,
+        "peer_median": 0.0010099999999999996,
+        "peer_std": 0.017479679630931454,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 1223.762376237624,
+        "vs_median_percent": 1223.762376237624
+      },
+      "ProfitMargin": {
+        "ticker_value": 0.01887,
+        "peer_mean": -0.0063750000000000005,
+        "peer_median": -0.0063750000000000005,
+        "peer_std": 0.03570182138210879,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": -396.00000000000006,
+        "vs_median_percent": -396.00000000000006
+      },
+      "OperatingMargin": {
+        "ticker_value": 0.03924,
+        "peer_mean": 0.011345000499999999,
+        "peer_median": 0.011345000499999999,
+        "peer_std": 0.0394494866152907,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 245.87922671312353,
+        "vs_median_percent": 245.87922671312353
+      },
+      "RevenueGrowth": {
+        "ticker_value": 0.107,
+        "peer_mean": 0.23049999999999998,
+        "peer_median": 0.23049999999999998,
+        "peer_std": 0.17465537495307723,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -53.57917570498915,
+        "vs_median_percent": -53.57917570498915
+      },
+      "DebtToEquity": {
+        "ticker_value": 3.704,
+        "peer_mean": 17.3505,
+        "peer_median": 17.3505,
+        "peer_std": 19.29906537892444,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -78.65191204864412,
+        "vs_median_percent": -78.65191204864412
+      },
+      "CurrentRatio": {
+        "ticker_value": 2.844,
+        "peer_mean": 3.0475,
+        "peer_median": 3.0475,
+        "peer_std": 0.28779245994292485,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -6.677604593929451,
+        "vs_median_percent": -6.677604593929451
+      },
+      "FCF Yield": {
+        "ticker_value": 0.081086401593516,
+        "peer_mean": 0.0561421290788,
+        "peer_median": 0.0561421290788,
+        "peer_std": 0.035276528493841795,
+        "percentile_rank": 50.0,
+        "vs_mean_percent": 44.43057811310416,
+        "vs_median_percent": 44.43057811310416
+      },
+      "Beta": {
+        "ticker_value": 0.919,
+        "peer_mean": 1.113,
+        "peer_median": 1.113,
+        "peer_std": 0.27435743110038036,
+        "percentile_rank": 0.0,
+        "vs_mean_percent": -17.430368373764598,
+        "vs_median_percent": -17.430368373764598
+      }
+    }
+  }
+}
