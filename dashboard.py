@@ -628,4 +628,4 @@ if __name__ == '__main__':
     if not initial_df.empty:
         GLOBAL_DATA['df'] = initial_df
     
-    app.run_server(debug=True, host='0.0.0.0', port=8050)
+    app.run(debug=True, host='0.0.0.0', port=8050)
