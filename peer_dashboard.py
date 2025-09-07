@@ -2527,7 +2527,7 @@ def get_real_nvidia_metrics(ticker):
             current_price_num = 0
         
         # PE Ratio - Quarterly, TTM and Forward
-        # PE Quarterly (from quarterly EPS)
+        # PE Quarterly (from quarterly EPS) - Only if EPS is positive
         try:
             if not quarterly_financials.empty and current_price_num > 0:
                 # Try different EPS fields that might be available
@@ -2547,18 +2547,42 @@ def get_real_nvidia_metrics(ticker):
                                 eps_quarterly = eps_data.iloc[0]
                             break
                             
+                # Only show PE if EPS is positive
                 if eps_quarterly and eps_quarterly > 0:
                     pe_quarterly = current_price_num / (eps_quarterly * 4)  # Annualize
                     percentage = min(100, max(0, 100 - ((pe_quarterly - 5) / 45) * 100))
                     profitability_section.append(('PE Ratio - Quarterly (Est)', f'{pe_quarterly:.1f}', percentage, 'valuation'))
+                elif eps_quarterly and eps_quarterly <= 0:
+                    # Show negative EPS but no PE ratio
+                    profitability_section.append(('PE Ratio - Quarterly (Est)', 'N/A (Negative EPS)', 0, 'valuation'))
         except Exception as e:
             print(f"Error calculating quarterly PE: {e}")
             
-        # PE TTM (Trailing Twelve Months)
+        # PE TTM (Trailing Twelve Months) - Try multiple sources
+        pe_ttm_found = False
+        # Method 1: Direct trailingPE
         if 'trailingPE' in info and info['trailingPE'] is not None and info['trailingPE'] > 0:
             pe_ttm = info['trailingPE']
             percentage = min(100, max(0, 100 - ((pe_ttm - 5) / 45) * 100))
             profitability_section.append(('PE Ratio - TTM', f'{pe_ttm:.1f}', percentage, 'valuation'))
+            pe_ttm_found = True
+            
+        # Method 2: Calculate from trailingEps if trailingPE not available
+        if not pe_ttm_found and 'trailingEps' in info and info['trailingEps'] is not None and current_price_num > 0:
+            trailing_eps = info['trailingEps']
+            if trailing_eps > 0:
+                pe_ttm_calc = current_price_num / trailing_eps
+                percentage = min(100, max(0, 100 - ((pe_ttm_calc - 5) / 45) * 100))
+                profitability_section.append(('PE Ratio - TTM (Calc)', f'{pe_ttm_calc:.1f}', percentage, 'valuation'))
+                pe_ttm_found = True
+            elif trailing_eps <= 0:
+                # Show negative EPS situation
+                profitability_section.append(('PE Ratio - TTM', 'N/A (Negative EPS)', 0, 'valuation'))
+                pe_ttm_found = True
+                
+        # Method 3: If still no TTM PE, show as unavailable
+        if not pe_ttm_found:
+            profitability_section.append(('PE Ratio - TTM', 'N/A (Data Unavailable)', 0, 'valuation'))
             
         # PE Forward (Analyst estimates for next 12 months)
         if 'forwardPE' in info and info['forwardPE'] is not None and info['forwardPE'] > 0:
@@ -2567,35 +2591,54 @@ def get_real_nvidia_metrics(ticker):
             profitability_section.append(('PE Ratio - Forward (12M Est)', f'{pe_forward:.1f}', percentage, 'valuation'))
         
         # PB Ratio - Both Quarterly and TTM estimates  
-        # PB Quarterly (from quarterly balance sheet)
+        # PB Quarterly (calculate from available data)
+        pb_quarterly_found = False
         try:
-            if not quarterly_financials.empty and current_price_num > 0:
-                # Try different equity fields
-                equity_fields = ['Total Stockholder Equity', 'Stockholders Equity', 'Total Equity']
-                equity_quarterly = None
-                
-                for field in equity_fields:
-                    if field in quarterly_financials.index:
-                        equity_data = quarterly_financials.loc[field].dropna()
-                        if len(equity_data) > 0 and equity_data.iloc[0] > 0:
-                            equity_quarterly = equity_data.iloc[0]
-                            break
-                            
+            if current_price_num > 0:
                 shares_outstanding = info.get('sharesOutstanding', 0)
-                if equity_quarterly and shares_outstanding > 0:
-                    book_value_per_share_q = equity_quarterly / shares_outstanding
-                    pb_quarterly = current_price_num / book_value_per_share_q
-                    # Scale: PB 0.5-5 as 100-0%
+                
+                # Method 1: Use bookValue per share from info if available
+                if 'bookValue' in info and info['bookValue'] is not None and info['bookValue'] > 0:
+                    book_value_per_share = info['bookValue']
+                    pb_quarterly = current_price_num / book_value_per_share
                     percentage = min(100, max(0, 100 - ((pb_quarterly - 0.5) / 4.5) * 100))
                     profitability_section.append(('PB Ratio - Current Quarter', f'{pb_quarterly:.1f}', percentage, 'valuation'))
+                    pb_quarterly_found = True
+                    
+                # Method 2: Calculate from quarterly balance sheet if available
+                elif not quarterly_financials.empty and shares_outstanding > 0:
+                    # Try different equity fields
+                    equity_fields = ['Total Stockholder Equity', 'Stockholders Equity', 'Total Equity', 'Common Stock Equity']
+                    equity_quarterly = None
+                    
+                    for field in equity_fields:
+                        if field in quarterly_financials.index:
+                            equity_data = quarterly_financials.loc[field].dropna()
+                            if len(equity_data) > 0 and equity_data.iloc[0] > 0:
+                                equity_quarterly = equity_data.iloc[0]
+                                break
+                                
+                    if equity_quarterly and equity_quarterly > 0:
+                        book_value_per_share_q = equity_quarterly / shares_outstanding
+                        pb_quarterly = current_price_num / book_value_per_share_q
+                        percentage = min(100, max(0, 100 - ((pb_quarterly - 0.5) / 4.5) * 100))
+                        profitability_section.append(('PB Ratio - Current Quarter', f'{pb_quarterly:.1f}', percentage, 'valuation'))
+                        pb_quarterly_found = True
+                        
         except Exception as e:
             print(f"Error calculating quarterly PB: {e}")
+            
+        # Show quarterly PB as unavailable if calculation failed
+        if not pb_quarterly_found:
+            profitability_section.append(('PB Ratio - Current Quarter', 'N/A (Data Unavailable)', 0, 'valuation'))
             
         # PB TTM (from API)
         if 'priceToBook' in info and info['priceToBook'] is not None and info['priceToBook'] > 0:
             pb_ratio = info['priceToBook']
             percentage = min(100, max(0, 100 - ((pb_ratio - 0.5) / 4.5) * 100))
             profitability_section.append(('PB Ratio - TTM', f'{pb_ratio:.1f}', percentage, 'valuation'))
+        else:
+            profitability_section.append(('PB Ratio - TTM', 'N/A (Data Unavailable)', 0, 'valuation'))
         
         # PS Ratio - Both Quarterly and TTM
         try:
