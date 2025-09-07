@@ -312,8 +312,60 @@ def create_growth_rates_chart(tickers):
     
     return fig
 
+def calculate_pe_ratios(ticker):
+    """Calculate historical P/E ratios for a ticker"""
+    try:
+        import yfinance as yf
+        from datetime import date
+        
+        stock = yf.Ticker(ticker)
+        quarterly_financials = stock.quarterly_financials
+        
+        if quarterly_financials.empty or 'Basic EPS' not in quarterly_financials.index:
+            return {}
+        
+        # Get historical prices
+        hist = stock.history(period="2y", interval="1d")
+        if hist.empty:
+            return {}
+        
+        # Define quarter end dates
+        quarter_ends = [
+            date(2025, 6, 30), date(2025, 3, 31), 
+            date(2024, 12, 31), date(2024, 9, 30),
+            date(2024, 6, 30), date(2024, 3, 31)
+        ]
+        
+        pe_ratios = {}
+        eps_data = quarterly_financials.loc['Basic EPS']
+        
+        for quarter_date, eps in eps_data.items():
+            quarter_end_date = quarter_date.date()
+            
+            # Find closest trading day price
+            available_dates = hist.index.date
+            closest_date = None
+            
+            for available_date in reversed(available_dates):
+                if available_date <= quarter_end_date:
+                    closest_date = available_date
+                    break
+            
+            if closest_date and eps > 0:
+                price = hist.loc[hist.index.date == closest_date, 'Close'].iloc[0]
+                pe_ratio = price / eps
+                pe_ratios[quarter_date] = pe_ratio
+            elif eps <= 0:
+                pe_ratios[quarter_date] = None  # Negative EPS
+        
+        return pe_ratios
+        
+    except Exception as e:
+        print(f"Error calculating P/E for {ticker}: {e}")
+        return {}
+
 def create_metric_tables(tickers):
-    """Create separate tables for each metric + margin tables"""
+    """Create separate tables for each metric + margin tables + P/E table"""
     
     # Get data for all tickers
     ticker_data = {}
@@ -333,7 +385,8 @@ def create_metric_tables(tickers):
         'Gross Profit': ('Gross Profit', 'M'),
         'EBITDA': ('EBITDA', 'M'),
         'Net Income': ('Net Income', 'M'),
-        'Free Cash Flow': ('Free Cash Flow', 'M')
+        'Free Cash Flow': ('Free Cash Flow', 'M'),
+        'EPS': ('Basic EPS', '')
     }
     
     # Create tables for absolute metrics
@@ -357,8 +410,12 @@ def create_metric_tables(tickers):
             for quarter in quarters:
                 quarter_num = (quarter.month - 1) // 3 + 1
                 quarter_label = f"{quarter.year}Q{quarter_num}"
-                value = metric_dict[quarter] / 1e6  # Convert to millions
-                row[quarter_label] = f"${value:.1f}M"
+                value = metric_dict[quarter]
+                
+                if unit == 'M':
+                    row[quarter_label] = f"${value/1e6:.1f}M"
+                else:  # EPS
+                    row[quarter_label] = f"${value:.3f}"
             
             # QoQ Growth
             if len(quarters) >= 2:
@@ -495,6 +552,81 @@ def create_metric_tables(tickers):
                     dbc.CardBody([table])
                 ], className="mb-3")
             )
+    
+    # Add P/E Ratio table
+    pe_table_data = []
+    
+    for ticker in sorted(ticker_data.keys()):
+        pe_ratios = calculate_pe_ratios(ticker)
+        
+        if not pe_ratios:
+            continue
+            
+        # Get quarters with P/E data
+        pe_quarters = sorted(pe_ratios.keys(), reverse=True)[:4]  # Last 4 quarters
+        
+        if len(pe_quarters) < 2:
+            continue
+            
+        row = {'Company': ticker}
+        pe_values = []
+        
+        # Last 4 quarters P/E ratios
+        for quarter in pe_quarters:
+            quarter_num = (quarter.month - 1) // 3 + 1
+            quarter_label = f"{quarter.year}Q{quarter_num}"
+            
+            pe_ratio = pe_ratios[quarter]
+            if pe_ratio is not None:
+                row[quarter_label] = f"{pe_ratio:.1f}x"
+                pe_values.append(pe_ratio)
+            else:
+                row[quarter_label] = "N/A"
+                pe_values.append(None)
+        
+        # P/E change QoQ
+        if len(pe_values) >= 2 and pe_values[0] is not None and pe_values[1] is not None:
+            qoq_change = ((pe_values[0] - pe_values[1]) / pe_values[1]) * 100
+            row['QoQ%'] = f"{qoq_change:+.1f}%"
+        else:
+            row['QoQ%'] = "N/A"
+        
+        # P/E change YoY
+        if len(pe_values) >= 4 and pe_values[0] is not None and pe_values[3] is not None:
+            yoy_change = ((pe_values[0] - pe_values[3]) / pe_values[3]) * 100
+            row['YoY%'] = f"{yoy_change:+.1f}%"
+        else:
+            row['YoY%'] = "N/A"
+        
+        pe_table_data.append(row)
+    
+    # Create P/E table
+    if pe_table_data:
+        df = pd.DataFrame(pe_table_data)
+        table = dash_table.DataTable(
+            data=df.to_dict('records'),
+            columns=[{"name": col, "id": col} for col in df.columns],
+            sort_action="native",
+            style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
+            style_header={'backgroundColor': 'rgb(250, 250, 250)', 'fontWeight': 'bold'},
+            style_data_conditional=[
+                {'if': {'column_id': 'QoQ%', 'filter_query': '{QoQ%} contains "+"'}, 'color': 'red', 'fontWeight': 'bold'},    # Higher P/E = worse
+                {'if': {'column_id': 'YoY%', 'filter_query': '{YoY%} contains "+"'}, 'color': 'red', 'fontWeight': 'bold'},
+                {'if': {'column_id': 'QoQ%', 'filter_query': '{QoQ%} contains "-"'}, 'color': 'green', 'fontWeight': 'bold'},  # Lower P/E = better
+                {'if': {'column_id': 'YoY%', 'filter_query': '{YoY%} contains "-"'}, 'color': 'green', 'fontWeight': 'bold'}
+            ],
+            style_table={'overflowX': 'auto'}
+        )
+        
+        tables.append(
+            dbc.Card([
+                dbc.CardHeader([
+                    html.H5("📊 P/E Ratio (Price-to-Earnings)", className="mb-0"),
+                    html.Small("Lower P/E generally indicates better value. Green = P/E decreased (better), Red = P/E increased (worse)", className="text-muted")
+                ]),
+                dbc.CardBody([table])
+            ], className="mb-3")
+        )
     
     return tables
 
