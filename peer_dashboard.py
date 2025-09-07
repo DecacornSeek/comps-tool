@@ -1596,26 +1596,35 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
         ])
     ], width=4)
     
-    # Middle Column: Score Cards (using real data)
-    score_cards_data = real_metrics.get('score_cards', []) if real_metrics else []
-    
-    # Default scores if no real data
-    if not score_cards_data:
-        score_cards_data = [
-            {"title": "GROWTH AND STABILITY", "score": "Moderate", "max_score": "", "color": "warning", 
-             "details": ["Data not available"]},
-            {"title": "REVENUE GROWTH 2Y", "score": "N/A", "max_score": "", "color": "secondary",
-             "details": ["Data not available"]},
-            {"title": "GROWTH CHECK", "score": "Moderate", "max_score": "", "color": "warning",
-             "details": ["Data not available"]},
-            {"title": "AAQS SCORE", "score": "6", "max_score": "", "color": "warning", 
-             "details": ["Data not available"]}
-        ]
+    # Middle Column: Growth and Stability Investment Banking Table
+    growth_metrics = calculate_growth_metrics_detailed(ticker)
     
     middle_scores = dbc.Col([
-        create_score_card(card["title"], card["score"], card["max_score"], 
-                         card["color"], card["details"]) 
-        for card in score_cards_data                    
+        # Growth and Stability - Investment Banking Table
+        dbc.Card([
+            dbc.CardHeader([
+                html.H6("GROWTH AND STABILITY", className="mb-0 fw-bold text-primary", 
+                        style={"fontSize": "0.9rem", "textTransform": "uppercase"})
+            ], style={"backgroundColor": "#f8f9fa", "borderBottom": "1px solid #e0e0e0"}),
+            dbc.CardBody([
+                create_investment_banking_table(growth_metrics)
+            ], className="p-3")
+        ], className="mb-3", style={
+            "borderRadius": "8px",
+            "boxShadow": "0 2px 4px rgba(0,0,0,0.1)",
+            "border": "2px solid #6c757d",
+            "backgroundColor": "#f8f9fa"
+        }),
+        
+        # Other score cards - simplified
+        create_score_card("REVENUE GROWTH 2Y", 
+                         growth_metrics.get('Revenue_YoY', 'N/A'), 
+                         "", "secondary", 
+                         ["Year-over-Year Growth", "Quarterly Performance"]),
+                         
+        create_score_card("AAQS SCORE", "7", "", "secondary", 
+                         ["Overall Assessment"])
+                         
     ], width=4)
     
     # Right Column: Detailed Metrics (using real data)
@@ -1851,6 +1860,256 @@ def get_formatted_pe_ratio(real_metrics):
             return f"{info['forwardPE']:.1f}"
     return "N/A"
 
+def calculate_growth_metrics_detailed(ticker):
+    """Calculate detailed growth metrics for investment banking table"""
+    
+    try:
+        stock = yf.Ticker(ticker)
+        
+        # Get quarterly and annual data
+        quarterly_financials = stock.quarterly_financials
+        annual_financials = stock.financials
+        info = stock.info
+        
+        metrics = {}
+        
+        # === REVENUE GROWTH METRICS ===
+        if not quarterly_financials.empty and 'Total Revenue' in quarterly_financials.index:
+            revenue_quarterly = quarterly_financials.loc['Total Revenue'].dropna()
+            
+            # Last 3 years revenue growth (CAGR)
+            if len(revenue_quarterly) >= 12:  # 3 years of quarterly data
+                recent_revenue = revenue_quarterly.iloc[0]
+                three_years_ago = revenue_quarterly.iloc[11]
+                revenue_3y_cagr = ((recent_revenue / three_years_ago) ** (1/3) - 1) * 100
+                metrics['Revenue_3Y_CAGR'] = f"{revenue_3y_cagr:.1f}%"
+            else:
+                metrics['Revenue_3Y_CAGR'] = "N/A"
+            
+            # YoY Revenue Growth
+            if len(revenue_quarterly) >= 4:
+                current_q = revenue_quarterly.iloc[0]
+                yoy_q = revenue_quarterly.iloc[3]  # Same quarter last year
+                revenue_yoy = ((current_q / yoy_q) - 1) * 100
+                metrics['Revenue_YoY'] = f"{revenue_yoy:.1f}%"
+            else:
+                metrics['Revenue_YoY'] = "N/A"
+            
+            # QoQ Revenue Growth
+            if len(revenue_quarterly) >= 2:
+                current_q = revenue_quarterly.iloc[0]
+                last_q = revenue_quarterly.iloc[1]
+                revenue_qoq = ((current_q / last_q) - 1) * 100
+                metrics['Revenue_QoQ'] = f"{revenue_qoq:.1f}%"
+            else:
+                metrics['Revenue_QoQ'] = "N/A"
+        
+        # === GROSS PROFIT MARGIN ===
+        if not quarterly_financials.empty and 'Gross Profit' in quarterly_financials.index and 'Total Revenue' in quarterly_financials.index:
+            gross_profit = quarterly_financials.loc['Gross Profit'].dropna()
+            revenue = quarterly_financials.loc['Total Revenue'].dropna()
+            
+            # Current Gross Margin
+            if len(gross_profit) > 0 and len(revenue) > 0:
+                current_margin = (gross_profit.iloc[0] / revenue.iloc[0]) * 100
+                metrics['Gross_Margin_Current'] = f"{current_margin:.1f}%"
+                
+                # YoY Gross Margin change
+                if len(gross_profit) >= 4 and len(revenue) >= 4:
+                    yoy_margin = (gross_profit.iloc[3] / revenue.iloc[3]) * 100
+                    margin_change = current_margin - yoy_margin
+                    metrics['Gross_Margin_YoY_Change'] = f"{margin_change:+.1f}pp"
+                else:
+                    metrics['Gross_Margin_YoY_Change'] = "N/A"
+                    
+                # QoQ Gross Margin change
+                if len(gross_profit) >= 2 and len(revenue) >= 2:
+                    qoq_margin = (gross_profit.iloc[1] / revenue.iloc[1]) * 100
+                    margin_change_qoq = current_margin - qoq_margin
+                    metrics['Gross_Margin_QoQ_Change'] = f"{margin_change_qoq:+.1f}pp"
+                else:
+                    metrics['Gross_Margin_QoQ_Change'] = "N/A"
+            else:
+                metrics['Gross_Margin_Current'] = "N/A"
+                metrics['Gross_Margin_YoY_Change'] = "N/A"
+                metrics['Gross_Margin_QoQ_Change'] = "N/A"
+        
+        # === EPS METRICS ===
+        # Try to get EPS from info first, then calculate from financials
+        current_eps = None
+        if 'trailingEps' in info and info['trailingEps'] is not None:
+            current_eps = info['trailingEps']
+            metrics['EPS_Current'] = f"${current_eps:.2f}"
+        else:
+            metrics['EPS_Current'] = "N/A"
+        
+        # Calculate EPS growth from net income and shares outstanding
+        if not quarterly_financials.empty and 'Net Income' in quarterly_financials.index:
+            net_income_quarterly = quarterly_financials.loc['Net Income'].dropna()
+            
+            # Get shares outstanding (basic)
+            shares_outstanding = None
+            if 'sharesOutstanding' in info and info['sharesOutstanding']:
+                shares_outstanding = info['sharesOutstanding']
+            elif 'impliedSharesOutstanding' in info and info['impliedSharesOutstanding']:
+                shares_outstanding = info['impliedSharesOutstanding']
+            
+            if shares_outstanding and len(net_income_quarterly) >= 4:
+                # Calculate EPS for current and YoY quarters
+                current_eps_calc = net_income_quarterly.iloc[0] / shares_outstanding
+                yoy_eps_calc = net_income_quarterly.iloc[3] / shares_outstanding
+                
+                if yoy_eps_calc != 0:
+                    eps_yoy_growth = ((current_eps_calc / yoy_eps_calc) - 1) * 100
+                    metrics['EPS_YoY'] = f"{eps_yoy_growth:.1f}%"
+                else:
+                    metrics['EPS_YoY'] = "N/A"
+                    
+                # QoQ EPS growth
+                if len(net_income_quarterly) >= 2:
+                    last_q_eps = net_income_quarterly.iloc[1] / shares_outstanding
+                    if last_q_eps != 0:
+                        eps_qoq_growth = ((current_eps_calc / last_q_eps) - 1) * 100
+                        metrics['EPS_QoQ'] = f"{eps_qoq_growth:.1f}%"
+                    else:
+                        metrics['EPS_QoQ'] = "N/A"
+                else:
+                    metrics['EPS_QoQ'] = "N/A"
+                    
+                # 3-year EPS CAGR
+                if len(net_income_quarterly) >= 12:
+                    three_years_eps = net_income_quarterly.iloc[11] / shares_outstanding
+                    if three_years_eps > 0:
+                        eps_3y_cagr = ((current_eps_calc / three_years_eps) ** (1/3) - 1) * 100
+                        metrics['EPS_3Y_CAGR'] = f"{eps_3y_cagr:.1f}%"
+                    else:
+                        metrics['EPS_3Y_CAGR'] = "N/A"
+                else:
+                    metrics['EPS_3Y_CAGR'] = "N/A"
+            else:
+                metrics['EPS_YoY'] = "N/A"
+                metrics['EPS_QoQ'] = "N/A"
+                metrics['EPS_3Y_CAGR'] = "N/A"
+        
+        return metrics
+        
+    except Exception as e:
+        print(f"Error calculating detailed growth metrics for {ticker}: {e}")
+        return {}
+
+def create_investment_banking_table(metrics):
+    """Create investment banking style table for Growth and Stability"""
+    
+    # Define the table structure
+    table_data = [
+        # Revenue Growth Section
+        {"Metric": "Revenue Growth", "Period": "3-Year CAGR", "Value": metrics.get('Revenue_3Y_CAGR', 'N/A'), "Category": "Revenue"},
+        {"Metric": "", "Period": "Year-over-Year", "Value": metrics.get('Revenue_YoY', 'N/A'), "Category": "Revenue"},
+        {"Metric": "", "Period": "Quarter-over-Quarter", "Value": metrics.get('Revenue_QoQ', 'N/A'), "Category": "Revenue"},
+        
+        # Gross Margin Section  
+        {"Metric": "Gross Profit Margin", "Period": "Current Quarter", "Value": metrics.get('Gross_Margin_Current', 'N/A'), "Category": "Margins"},
+        {"Metric": "", "Period": "YoY Change", "Value": metrics.get('Gross_Margin_YoY_Change', 'N/A'), "Category": "Margins"},
+        {"Metric": "", "Period": "QoQ Change", "Value": metrics.get('Gross_Margin_QoQ_Change', 'N/A'), "Category": "Margins"},
+        
+        # EPS Section
+        {"Metric": "Earnings per Share", "Period": "Current (TTM)", "Value": metrics.get('EPS_Current', 'N/A'), "Category": "EPS"},
+        {"Metric": "", "Period": "3-Year CAGR", "Value": metrics.get('EPS_3Y_CAGR', 'N/A'), "Category": "EPS"},
+        {"Metric": "", "Period": "Year-over-Year", "Value": metrics.get('EPS_YoY', 'N/A'), "Category": "EPS"},
+        {"Metric": "", "Period": "Quarter-over-Quarter", "Value": metrics.get('EPS_QoQ', 'N/A'), "Category": "EPS"},
+    ]
+    
+    # Create the table with investment banking styling
+    table_style = {
+        'backgroundColor': 'white',
+        'border': '1px solid #e0e0e0',
+        'borderRadius': '4px',
+        'fontFamily': 'Arial, sans-serif',
+        'fontSize': '12px'
+    }
+    
+    header_style = {
+        'backgroundColor': '#f8f9fa',
+        'fontWeight': 'bold',
+        'borderBottom': '2px solid #dee2e6',
+        'padding': '8px',
+        'textAlign': 'left'
+    }
+    
+    cell_style = {
+        'padding': '6px 8px',
+        'borderBottom': '1px solid #e9ecef',
+        'textAlign': 'left',
+        'whiteSpace': 'nowrap'
+    }
+    
+    # Create sections with category headers
+    table_rows = []
+    current_category = ""
+    
+    for row in table_data:
+        # Add category header
+        if row['Category'] != current_category:
+            current_category = row['Category']
+            
+            if current_category == "Revenue":
+                category_name = "Revenue Growth Analysis"
+                category_color = "#e3f2fd"
+            elif current_category == "Margins": 
+                category_name = "Profitability Margins"
+                category_color = "#f3e5f5"
+            else:  # EPS
+                category_name = "Earnings per Share Analysis" 
+                category_color = "#e8f5e8"
+            
+            table_rows.append(
+                html.Tr([
+                    html.Td(category_name, colSpan=3, style={
+                        'backgroundColor': category_color,
+                        'fontWeight': 'bold',
+                        'padding': '8px',
+                        'borderBottom': '1px solid #ccc',
+                        'fontSize': '11px',
+                        'color': '#333'
+                    })
+                ])
+            )
+        
+        # Determine text color based on value
+        value = row['Value']
+        text_color = '#000'
+        if value != 'N/A' and '%' in value:
+            try:
+                numeric_value = float(value.replace('%', '').replace('+', ''))
+                if numeric_value > 0:
+                    text_color = '#00b300'  # Green for positive
+                elif numeric_value < 0:
+                    text_color = '#d32f2f'  # Red for negative
+            except:
+                pass
+        
+        # Add data row
+        table_rows.append(
+            html.Tr([
+                html.Td(row['Metric'], style={**cell_style, 'fontWeight': 'bold' if row['Metric'] else 'normal', 'width': '40%'}),
+                html.Td(row['Period'], style={**cell_style, 'width': '35%'}),
+                html.Td(row['Value'], style={**cell_style, 'fontWeight': 'bold', 'color': text_color, 'width': '25%'})
+            ])
+        )
+    
+    return html.Div([
+        html.Table([
+            html.Thead([
+                html.Tr([
+                    html.Th("Metric", style=header_style),
+                    html.Th("Period", style=header_style),
+                    html.Th("Value", style=header_style)
+                ])
+            ]),
+            html.Tbody(table_rows)
+        ], style=table_style)
+    ])
+
 def get_formatted_eps(real_metrics):
     """Format EPS for display"""
     if real_metrics and 'raw_data' in real_metrics and 'info' in real_metrics['raw_data']:
@@ -1968,7 +2227,7 @@ def create_comprehensive_financial_chart(ticker):
         
         # Update layout with dual y-axes like the original
         fig.update_layout(
-            title='Revenue and Profit Development (Quarterly)',
+            title='',
             xaxis=dict(
                 title='Quarter',
                 showgrid=True,
