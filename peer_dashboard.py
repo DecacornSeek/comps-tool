@@ -1312,6 +1312,7 @@ def create_layout():
     tabs.append(dbc.Tab(label="📈 Historical Trends", tab_id="historical_trends"))
     tabs.append(dbc.Tab(label="📊 Growth Analysis", tab_id="growth_analysis"))
     tabs.append(dbc.Tab(label="💼 Professional Analysis", tab_id="professional_analysis"))
+    tabs.append(dbc.Tab(label="📈 NVIDIA-Style Analysis", tab_id="nvidia_style"))
     
     layout = dbc.Container([
         dbc.Row([
@@ -1449,7 +1450,218 @@ def update_tab_content(active_tab):
         else:
             return [dbc.Alert("No tickers found for professional analysis", color="warning")]
     
+    elif active_tab == "nvidia_style":
+        return create_nvidia_style_dashboard('ZETA')
+    
     return dbc.Alert("Tab not found", color="danger")
+
+def create_nvidia_style_dashboard(ticker='ZETA'):
+    """Create NVIDIA-style comprehensive analysis dashboard"""
+    
+    # Get basic data
+    try:
+        peer_df = pd.read_csv('/home/user/webapp/zeta_adtech_analysis_enhanced.csv')
+        ticker_data = peer_df[peer_df['Ticker'] == ticker].iloc[0] if not peer_df[peer_df['Ticker'] == ticker].empty else None
+    except:
+        ticker_data = None
+    
+    # Header Section
+    header_section = dbc.Card([
+        dbc.CardBody([
+            dbc.Row([
+                dbc.Col([
+                    html.H2(f"{ticker} Corp", className="mb-1"),
+                    html.P([
+                        html.Strong("WKN: "), "123456 | ",
+                        html.Strong("ISIN: "), f"US{ticker}001 | ",
+                        html.Strong("Börse: "), "NASDAQ | ",
+                        html.Strong("Sektor: "), "Technology / AdTech"
+                    ], className="text-muted mb-0")
+                ], width=8),
+                dbc.Col([
+                    html.Div([
+                        html.H4(f"${ticker_data['Price']:.2f}" if ticker_data is not None and pd.notna(ticker_data['Price']) else "$18.90", className="text-primary mb-0"),
+                        html.Small("+2.3% (1D)", className="text-success")
+                    ], className="text-end")
+                ], width=4)
+            ])
+        ])
+    ], className="mb-3")
+    
+    # Left Column: Charts
+    left_charts = dbc.Col([
+        # Revenue/Earnings Chart
+        dbc.Card([
+            dbc.CardHeader("Umsatz- und Gewinnentwicklung (jährlich)"),
+            dbc.CardBody([
+                dcc.Graph(
+                    figure=create_mock_revenue_chart(),
+                    style={'height': '250px'}
+                )
+            ])
+        ], className="mb-3"),
+        
+        # Stock Price Chart  
+        dbc.Card([
+            dbc.CardHeader("Aktienkursentwicklung"),
+            dbc.CardBody([
+                dcc.Graph(
+                    figure=create_mock_stock_chart(), 
+                    style={'height': '200px'}
+                )
+            ])
+        ])
+    ], width=4)
+    
+    # Middle Column: Score Cards
+    middle_scores = dbc.Col([
+        # Quality Score
+        create_score_card("QUALITÄTS-CHECK", "15", "15", "success", 
+                         ["Umsatzwachstum 5 Jahre: 27.1%", "Stabilität Umsatzwachstum: 31.8%", "EPS-Wachstum 5 Jahre: 44.1%"]),
+        
+        # Growth Score
+        create_score_card("Umsatz-Wachs. 3J", "12.3%", "", "primary",
+                         ["Performance 3 Jahre", "Quarterly Growth"]),
+        
+        # Stability Score  
+        create_score_card("WACHSTUMS-CHECK", "14", "15", "success",
+                         ["Umsatzwachstum (TTM): 67.6%", "Revenue Stability: 13.3%"]),
+        
+        # Overall Score
+        create_score_card("AAQS Score", "10", "", "success", 
+                         ["Gesamtbewertung"])
+                         
+    ], width=4)
+    
+    # Right Column: Detailed Metrics
+    right_metrics = dbc.Col([
+        create_metrics_section("Wachstum und Stabilität", [
+            ("Umsatzwachstum 5 Jahre", "27.1%", 85),
+            ("Stabilität Umsatzwachstum 5 Jahre", "31.8%", 70),
+            ("EPS-Wachstum 5 Jahre", "44.1%", 90),
+            ("Stabilität EPS-Wachstum 5 Jahre", "71.3%", 75)
+        ]),
+        
+        create_metrics_section("Kursentwicklung und Volatilität", [
+            ("Volatilität", "6.24%", 60),
+            ("Performance 1 Jahr", "80.1%", 95),
+            ("Kunststabilität", "87.0%", 85)
+        ]),
+        
+        create_metrics_section("Sicherheit und Bilanz", [
+            ("Finanzmarktstärke", "36.8%", 70),
+            ("EBIT / Verschuldung", "6.6%", 45),
+            ("Zinsdeckungsgrad", "24.9%", 60)
+        ]),
+        
+        create_metrics_section("Finanzmarktstärke Wachstum", [
+            ("Börsenwert / Verschuldung", "89.5%", 95),
+            ("Umsatz / Verschuldung (Verschuldungsgrad)", "1.71", 80),
+            ("Rule-of-40 TTM", "87.7%", 90)
+        ])
+        
+    ], width=4)
+    
+    return [
+        header_section,
+        dbc.Row([left_charts, middle_scores, right_metrics])
+    ]
+
+def create_mock_revenue_chart():
+    """Create mock revenue/earnings bar chart"""
+    years = [2019, 2020, 2021, 2022, 2023, 2024]
+    revenue = [400, 500, 750, 1100, 1250, 1400]
+    earnings = [20, 40, 100, 150, 180, 220]
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(name='Umsatz', x=years, y=revenue, marker_color='lightblue'))
+    fig.add_trace(go.Bar(name='Gewinn', x=years, y=earnings, marker_color='darkblue'))
+    
+    fig.update_layout(
+        barmode='group',
+        title='',
+        showlegend=True,
+        height=250,
+        margin=dict(l=40, r=40, t=20, b=40),
+        font=dict(size=10)
+    )
+    return fig
+
+def create_mock_stock_chart():
+    """Create mock stock price line chart"""
+    from datetime import datetime, timedelta
+    
+    # Generate mock stock data
+    dates = pd.date_range(start=datetime.now() - timedelta(days=365), end=datetime.now(), freq='D')
+    prices = np.cumsum(np.random.randn(len(dates)) * 0.02) + 100
+    prices = prices * (18.90 / prices[-1])  # Normalize to current price
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=dates, y=prices, mode='lines', name='Aktienkurs', line=dict(color='green', width=2)))
+    
+    fig.update_layout(
+        title='',
+        showlegend=False,
+        height=200,
+        margin=dict(l=40, r=40, t=20, b=40),
+        font=dict(size=10),
+        xaxis=dict(showgrid=True),
+        yaxis=dict(showgrid=True)
+    )
+    return fig
+
+def create_score_card(title, score, max_score="", color="primary", details=[]):
+    """Create a score card like in NVIDIA dashboard"""
+    
+    if max_score:
+        score_display = html.H1(f"{score}/{max_score}", className=f"text-{color} mb-0")
+    else:
+        score_display = html.H1(score, className=f"text-{color} mb-0")
+    
+    return dbc.Card([
+        dbc.CardBody([
+            html.H6(title, className="card-title text-muted"),
+            score_display,
+            html.Hr(),
+            html.Div([
+                html.Small(detail, className="d-block text-muted") for detail in details
+            ])
+        ], className="text-center")
+    ], className="mb-3", color=color, outline=True)
+
+def create_metrics_section(title, metrics):
+    """Create a metrics section with progress bars"""
+    
+    metric_items = []
+    for name, value, percentage in metrics:
+        # Determine color based on percentage
+        if percentage >= 80:
+            color = "success"
+        elif percentage >= 60:
+            color = "warning" 
+        else:
+            color = "danger"
+            
+        metric_items.append(
+            html.Div([
+                dbc.Row([
+                    dbc.Col([
+                        html.Small(name, className="fw-bold")
+                    ], width=8),
+                    dbc.Col([
+                        html.Small(value, className="text-end")
+                    ], width=4)
+                ]),
+                dbc.Progress(value=percentage, color=color, className="mb-2", style={"height": "8px"})
+            ], className="mb-2")
+        )
+    
+    return dbc.Card([
+        dbc.CardHeader([
+            html.H6(title, className="mb-0")
+        ]),
+        dbc.CardBody(metric_items)
+    ], className="mb-3")
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8051)
