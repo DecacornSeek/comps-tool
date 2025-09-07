@@ -2443,21 +2443,84 @@ def get_real_nvidia_metrics(ticker):
         # Detailed Metrics with Progress Bars - Your exact specifications
         detailed_metrics = []
         
-        # 1. Profitability Check: ROE, ROIC, Net Profit Margin
+        # 1. Extended Profitability Check: NPE (Quarterly & Yearly), Valuation Ratios
         profitability_section = []
+        
+        # ROE (existing)
         if 'returnOnEquity' in info and info['returnOnEquity'] is not None:
             roe = info['returnOnEquity'] * 100
             percentage = min(100, max(0, roe * 3))  # Scale 0-33% as 0-100%
             profitability_section.append(('Return on Equity (ROE)', f'{roe:.1f}%', percentage))
             
+        # ROIC (existing)
         if roic is not None:
             percentage = min(100, max(0, roic * 4))  # Scale 0-25% as 0-100%
             profitability_section.append(('Return on Invested Capital (ROIC)', f'{roic:.1f}%', percentage))
         
-        if 'profitMargins' in info and info['profitMargins'] is not None:
-            net_margin = info['profitMargins'] * 100
-            percentage = min(100, max(0, net_margin * 5))  # Scale 0-20% as 0-100%
-            profitability_section.append(('Net Profit Margin', f'{net_margin:.1f}%', percentage))
+        # NPE (Net Profit Margin) - Quarterly and Yearly
+        try:
+            # Get quarterly financials for quarterly NPE
+            quarterly_financials = stock.quarterly_financials
+            
+            # Quarterly NPE
+            if not quarterly_financials.empty and 'Net Income' in quarterly_financials.index and 'Total Revenue' in quarterly_financials.index:
+                net_income_q = quarterly_financials.loc['Net Income'].dropna()
+                revenue_q = quarterly_financials.loc['Total Revenue'].dropna()
+                if len(net_income_q) > 0 and len(revenue_q) > 0:
+                    npe_quarterly = (net_income_q.iloc[0] / revenue_q.iloc[0]) * 100
+                    percentage = min(100, max(0, npe_quarterly * 5))
+                    profitability_section.append(('NPE - Current Quarter', f'{npe_quarterly:.1f}%', percentage))
+            
+            # Yearly NPE (TTM or Annual)
+            if 'profitMargins' in info and info['profitMargins'] is not None:
+                npe_yearly = info['profitMargins'] * 100
+                percentage = min(100, max(0, npe_yearly * 5))
+                profitability_section.append(('NPE - Trailing 12M', f'{npe_yearly:.1f}%', percentage))
+            elif not financials.empty and 'Net Income' in financials.index and 'Total Revenue' in financials.index:
+                # Calculate from annual data if TTM not available
+                net_income_a = financials.loc['Net Income'].dropna()
+                revenue_a = financials.loc['Total Revenue'].dropna()
+                if len(net_income_a) > 0 and len(revenue_a) > 0:
+                    npe_annual = (net_income_a.iloc[0] / revenue_a.iloc[0]) * 100
+                    percentage = min(100, max(0, npe_annual * 5))
+                    profitability_section.append(('NPE - Annual', f'{npe_annual:.1f}%', percentage))
+        except Exception as e:
+            print(f"Error calculating NPE metrics: {e}")
+        
+        # PE Ratio (Quarterly & Yearly)
+        if 'trailingPE' in info and info['trailingPE'] is not None:
+            pe_ttm = info['trailingPE']
+            percentage = min(100, max(0, 100 - (pe_ttm * 2)))  # Lower PE = higher score
+            profitability_section.append(('PE Ratio - TTM', f'{pe_ttm:.1f}', percentage))
+            
+        if 'forwardPE' in info and info['forwardPE'] is not None:
+            pe_forward = info['forwardPE']
+            percentage = min(100, max(0, 100 - (pe_forward * 2)))
+            profitability_section.append(('PE Ratio - Forward', f'{pe_forward:.1f}', percentage))
+        
+        # PB Ratio (Price-to-Book)
+        if 'priceToBook' in info and info['priceToBook'] is not None:
+            pb_ratio = info['priceToBook']
+            percentage = min(100, max(0, 100 - (pb_ratio * 20)))  # Lower PB = higher score
+            profitability_section.append(('PB Ratio', f'{pb_ratio:.1f}', percentage))
+        
+        # PS Ratio (Price-to-Sales)
+        if 'priceToSalesTrailing12Months' in info and info['priceToSalesTrailing12Months'] is not None:
+            ps_ratio = info['priceToSalesTrailing12Months']
+            percentage = min(100, max(0, 100 - (ps_ratio * 10)))  # Lower PS = higher score
+            profitability_section.append(('PS Ratio - TTM', f'{ps_ratio:.1f}', percentage))
+        
+        # EV/Revenue
+        if 'enterpriseToRevenue' in info and info['enterpriseToRevenue'] is not None:
+            ev_revenue = info['enterpriseToRevenue']
+            percentage = min(100, max(0, 100 - (ev_revenue * 10)))
+            profitability_section.append(('EV/Revenue', f'{ev_revenue:.1f}', percentage))
+        
+        # EV/EBITDA
+        if 'enterpriseToEbitda' in info and info['enterpriseToEbitda'] is not None:
+            ev_ebitda = info['enterpriseToEbitda']
+            percentage = min(100, max(0, 100 - (ev_ebitda * 5)))
+            profitability_section.append(('EV/EBITDA', f'{ev_ebitda:.1f}', percentage))
             
         if profitability_section:
             detailed_metrics.append(('Profitability Check', profitability_section))
