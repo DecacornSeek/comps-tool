@@ -334,12 +334,12 @@ def create_chart_data_table(tickers):
     # Sort quarters (most recent first)
     sorted_quarters = sorted(all_quarters, reverse=True)[:5]  # Last 5 quarters
     
-    # Create quarter labels
+    # Create quarter labels (filter-friendly names without spaces)
     quarter_labels = []
     for quarter_date in sorted_quarters:
         if hasattr(quarter_date, 'strftime'):
             quarter_num = (quarter_date.month - 1) // 3 + 1
-            quarter_label = f"{quarter_date.year} Q{quarter_num}"
+            quarter_label = f"{quarter_date.year}Q{quarter_num}"  # No space
         else:
             quarter_label = f"Q{len(quarter_labels)+1}"
         quarter_labels.append(quarter_label)
@@ -408,10 +408,12 @@ def create_chart_data_table(tickers):
     
     df = pd.DataFrame(all_data)
     
-    # Create table with styling
+    # Create table with styling and filtering
     table = dash_table.DataTable(
         data=df.to_dict('records'),
         columns=[{"name": col, "id": col} for col in df.columns],
+        filter_action="native",  # Enable filtering
+        sort_action="native",    # Enable sorting
         style_cell={
             'textAlign': 'center',
             'padding': '10px',
