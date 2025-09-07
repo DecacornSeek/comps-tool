@@ -821,6 +821,34 @@ def create_professional_metrics_tables(tickers):
         prof_table_data.append(ticker_row)
     
     if prof_table_data:
+        # Add Average and Median rows for profitability metrics
+        numeric_data = {}
+        for metric in profitability_metrics:
+            if metric in peer_df.columns:
+                values = peer_df[metric].dropna()
+                if len(values) > 0:
+                    numeric_data[metric] = values
+        
+        # Average row
+        avg_row = {'Company': 'Average'}
+        for metric in profitability_metrics:
+            if metric in numeric_data:
+                avg_val = numeric_data[metric].mean()
+                avg_row[metric] = f"{avg_val:.1%}" if abs(avg_val) < 10 else f"{avg_val*100:.1f}%"
+            else:
+                avg_row[metric] = "N/A"
+        prof_table_data.append(avg_row)
+        
+        # Median row
+        med_row = {'Company': 'Median'}
+        for metric in profitability_metrics:
+            if metric in numeric_data:
+                med_val = numeric_data[metric].median()
+                med_row[metric] = f"{med_val:.1%}" if abs(med_val) < 10 else f"{med_val*100:.1f}%"
+            else:
+                med_row[metric] = "N/A"
+        prof_table_data.append(med_row)
+        
         df = pd.DataFrame(prof_table_data)
         table = dash_table.DataTable(
             data=df.to_dict('records'),
@@ -839,6 +867,19 @@ def create_professional_metrics_tables(tickers):
                 'fontWeight': 'bold',
                 'border': '1px solid #2c3e50'
             },
+            style_data_conditional=[
+                # Highlight Average and Median rows
+                {
+                    'if': {'filter_query': '{Company} = Average'},
+                    'backgroundColor': '#ecf0f1',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{Company} = Median'},
+                    'backgroundColor': '#d5dbdb',
+                    'fontWeight': 'bold'
+                }
+            ],
             style_table={'overflowX': 'auto', 'border': '1px solid #ddd'}
         )
         
@@ -925,7 +966,19 @@ def create_professional_metrics_tables(tickers):
                 'fontWeight': 'bold',
                 'border': '1px solid #c0392b'
             },
-            style_data_conditional=style_conditions,
+            style_data_conditional=style_conditions + [
+                # Highlight Average and Median rows
+                {
+                    'if': {'filter_query': '{Company} = Average'},
+                    'backgroundColor': '#ecf0f1',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{Company} = Median'},
+                    'backgroundColor': '#d5dbdb', 
+                    'fontWeight': 'bold'
+                }
+            ],
             style_table={'overflowX': 'auto', 'border': '1px solid #ddd'}
         )
         
