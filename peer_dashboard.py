@@ -3143,124 +3143,113 @@ def create_improved_investment_banking_table_new(metrics):
     ], style={'margin': '0 auto'})
 
 
-def get_peer_group_tickers():
-    """Get peer group tickers from the CSV file"""
+def calculate_peer_comparison_from_csv(target_ticker):
+    """Calculate peer comparison using pre-calculated data from CSV - Much more efficient!"""
+    
     try:
+        # Load the CSV with all pre-calculated metrics
         peer_df = pd.read_csv('/home/user/webapp/zeta_adtech_analysis_enhanced.csv')
-        return peer_df['Ticker'].tolist()
-    except:
-        # Fallback to hardcoded peer group
-        return ['ZETA', 'BRZE', 'CXM', 'DV', 'IAS', 'TTD', 'CRTO', 'RAMP']
-
-
-def calculate_peer_comparison_metrics(target_ticker):
-    """Calculate comprehensive peer comparison for profitability and valuation metrics"""
-    
-    peer_tickers = get_peer_group_tickers()
-    if target_ticker not in peer_tickers:
-        peer_tickers.append(target_ticker)
-    
-    # Define the metrics to compare
-    metrics_to_compare = {
-        'EV/EBITDA (TTM)': 'enterpriseToEbitda',
-        'EV/Sales (TTM)': 'enterpriseToRevenue', 
-        'P/E (TTM)': 'trailingPE',
-        'P/E (Forward)': 'forwardPE',
-        'P/S (TTM)': 'priceToSalesTrailing12Months',
-        'P/B (TTM)': 'priceToBook',
-        'Gross Margin': 'grossMargins',
-        'Operating Margin': 'operatingMargins',
-        'Net Profit Margin': 'profitMargins',
-        'ROE': 'returnOnEquity',
-        'ROA': 'returnOnAssets'
-    }
-    
-    # Collect data for all peers
-    peer_data = {}
-    
-    for ticker in peer_tickers:
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
-            
-            peer_data[ticker] = {}
-            
-            for metric_name, api_field in metrics_to_compare.items():
-                value = info.get(api_field, None)
-                
-                # Convert margins to percentages
-                if 'Margin' in metric_name or metric_name in ['ROE', 'ROA']:
-                    if value is not None:
-                        value = value * 100
-                
-                peer_data[ticker][metric_name] = value
-                
-        except Exception as e:
-            print(f"Error fetching data for {ticker}: {e}")
-            peer_data[ticker] = {metric: None for metric in metrics_to_compare.keys()}
-    
-    # Calculate peer statistics (excluding target company)
-    peer_stats = {}
-    target_data = peer_data.get(target_ticker, {})
-    
-    for metric_name in metrics_to_compare.keys():
-        # Get values from all peers except target
-        peer_values = []
-        for ticker, data in peer_data.items():
-            if ticker != target_ticker and data.get(metric_name) is not None:
-                # Filter out extreme outliers (e.g., negative P/E ratios)
-                value = data[metric_name]
-                if 'P/E' in metric_name and (value < 0 or value > 500):
-                    continue
-                if 'EV/' in metric_name and (value < 0 or value > 1000):
-                    continue
-                peer_values.append(value)
         
-        # Calculate statistics
-        if len(peer_values) >= 2:
-            peer_median = np.median(peer_values)
-            peer_average = np.mean(peer_values)
-            target_value = target_data.get(metric_name)
+        # Define metric mapping from CSV columns
+        csv_metrics = {
+            'EV/EBITDA (TTM)': 'EV/EBITDA',
+            'EV/Sales (TTM)': 'EV/Revenue', 
+            'P/E (Forward)': 'P/E (Fwd)',
+            'P/S (TTM)': 'P/S',
+            'P/B (TTM)': 'P/B',
+            'Gross Margin': 'GrossMargin',
+            'Operating Margin': 'OperatingMargin',
+            'Net Profit Margin': 'ProfitMargin',
+            'ROE': 'ROE',
+            'ROA': 'ROA'
+        }
+        
+        # Get target company data
+        target_row = peer_df[peer_df['Ticker'] == target_ticker]
+        if target_row.empty:
+            return {}
             
-            # Determine positioning vs peers
-            vs_median = None
-            vs_average = None
+        target_data = target_row.iloc[0]
+        
+        # Get peer data (all companies except target)
+        peer_rows = peer_df[peer_df['Ticker'] != target_ticker]
+        
+        # Calculate peer statistics
+        peer_stats = {}
+        
+        for display_name, csv_column in csv_metrics.items():
+            if csv_column not in peer_df.columns:
+                continue
+                
+            # Get target value
+            target_value = target_data[csv_column]
             
-            if target_value is not None:
-                # For valuation metrics, lower is generally better
-                if any(term in metric_name for term in ['P/E', 'P/S', 'P/B', 'EV/']):
-                    vs_median = 'Below' if target_value < peer_median else 'Above'
-                    vs_average = 'Below' if target_value < peer_average else 'Above'
-                # For profitability metrics, higher is generally better  
-                else:
-                    vs_median = 'Above' if target_value > peer_median else 'Below'
-                    vs_average = 'Above' if target_value > peer_average else 'Below'
+            # Convert to percentage for margins if needed
+            if 'Margin' in display_name or display_name in ['ROE', 'ROA']:
+                if pd.notna(target_value):
+                    target_value = target_value * 100
             
-            peer_stats[metric_name] = {
-                'target_value': target_value,
-                'peer_median': peer_median,
-                'peer_average': peer_average,
-                'vs_median': vs_median,
-                'vs_average': vs_average,
-                'peer_count': len(peer_values)
-            }
-        else:
-            peer_stats[metric_name] = {
-                'target_value': target_data.get(metric_name),
-                'peer_median': None,
-                'peer_average': None,
-                'vs_median': None,
-                'vs_average': None,
-                'peer_count': len(peer_values)
-            }
-    
-    return peer_stats
+            # Get peer values (excluding target)
+            peer_values = peer_rows[csv_column].dropna()
+            
+            # Convert peer values to percentage for margins
+            if 'Margin' in display_name or display_name in ['ROE', 'ROA']:
+                peer_values = peer_values * 100
+            
+            # Filter out extreme outliers
+            if 'P/E' in display_name:
+                peer_values = peer_values[(peer_values > 0) & (peer_values < 500)]
+            elif 'EV/' in display_name:
+                peer_values = peer_values[(peer_values > 0) & (peer_values < 1000)]
+            
+            # Calculate statistics if we have enough data
+            if len(peer_values) >= 2:
+                peer_median = peer_values.median()
+                peer_average = peer_values.mean()
+                
+                # Determine positioning
+                vs_median = None
+                vs_average = None
+                
+                if pd.notna(target_value):
+                    # For valuation metrics, lower is better
+                    if any(term in display_name for term in ['P/E', 'P/S', 'P/B', 'EV/']):
+                        vs_median = 'Below' if target_value < peer_median else 'Above'
+                        vs_average = 'Below' if target_value < peer_average else 'Above'
+                    # For profitability metrics, higher is better
+                    else:
+                        vs_median = 'Above' if target_value > peer_median else 'Below'
+                        vs_average = 'Above' if target_value > peer_average else 'Below'
+                
+                peer_stats[display_name] = {
+                    'target_value': target_value if pd.notna(target_value) else None,
+                    'peer_median': peer_median,
+                    'peer_average': peer_average,
+                    'vs_median': vs_median,
+                    'vs_average': vs_average,
+                    'peer_count': len(peer_values)
+                }
+            else:
+                peer_stats[display_name] = {
+                    'target_value': target_value if pd.notna(target_value) else None,
+                    'peer_median': None,
+                    'peer_average': None,
+                    'vs_median': None,
+                    'vs_average': None,
+                    'peer_count': len(peer_values)
+                }
+        
+        return peer_stats
+        
+    except Exception as e:
+        print(f"Error loading CSV peer comparison: {e}")
+        return {}
 
 
 def create_peer_comparison_table(target_ticker):
-    """Create a comprehensive peer comparison table"""
+    """Create a comprehensive peer comparison table using CSV data"""
     
-    peer_stats = calculate_peer_comparison_metrics(target_ticker)
+    peer_stats = calculate_peer_comparison_from_csv(target_ticker)
     
     if not peer_stats:
         return html.Div("Peer comparison data unavailable", className="text-muted")
