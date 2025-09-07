@@ -312,158 +312,112 @@ def create_growth_rates_chart(tickers):
     
     return fig
 
-def create_chart_data_table(tickers):
-    """Create a single combined table with values from the charts"""
-    all_data = []
+def create_kpi_tables(tickers):
+    """Create separate tables for each KPI showing all companies"""
     
-    # Get all quarters first to create consistent columns
-    all_quarters = set()
+    # Get data for all tickers
     ticker_data = {}
+    all_quarters = set()
     
     for ticker in tickers:
         historical_data = get_historical_metrics(ticker)
-        if historical_data:
+        if historical_data and 'quarterly_data' in historical_data:
             ticker_data[ticker] = historical_data
-            
-            # Collect all quarters from all metrics
+            # Collect all quarters
             for metric_name in ['Revenue', 'EBITDA', 'Net Income', 'Free Cash Flow', 'Basic EPS']:
                 if metric_name in historical_data['quarterly_data']:
                     quarters = historical_data['quarterly_data'][metric_name].keys()
                     all_quarters.update(quarters)
     
+    if not ticker_data:
+        return [dbc.Alert("No historical data available for any tickers", color="warning")]
+    
     # Sort quarters (most recent first)
     sorted_quarters = sorted(all_quarters, reverse=True)[:5]  # Last 5 quarters
     
-    # Create quarter labels (filter-friendly names without spaces)
-    quarter_labels = []
+    # Create quarter labels
+    quarter_labels = ['Company']
     for quarter_date in sorted_quarters:
         if hasattr(quarter_date, 'strftime'):
             quarter_num = (quarter_date.month - 1) // 3 + 1
-            quarter_label = f"{quarter_date.year}Q{quarter_num}"  # No space
+            quarter_label = f"{quarter_date.year}Q{quarter_num}"
         else:
-            quarter_label = f"Q{len(quarter_labels)+1}"
+            quarter_label = f"Q{len(quarter_labels)}"
         quarter_labels.append(quarter_label)
     
-    # Build data for each ticker and metric
-    for ticker in tickers:
-        if ticker not in ticker_data:
-            continue
-            
-        historical_data = ticker_data[ticker]
-        
-        # Revenue row
-        if 'Revenue' in historical_data['quarterly_data']:
-            row = {'Ticker': ticker, 'Metric': 'Revenue ($M)'}
-            revenue_dict = historical_data['quarterly_data']['Revenue']
-            
-            for i, quarter_date in enumerate(sorted_quarters):
-                quarter_label = quarter_labels[i]
-                if quarter_date in revenue_dict:
-                    row[quarter_label] = f"${revenue_dict[quarter_date]/1e6:.1f}M"
-                else:
-                    row[quarter_label] = "N/A"
-            all_data.append(row)
-        
-        # EBITDA row
-        if 'EBITDA' in historical_data['quarterly_data']:
-            row = {'Ticker': ticker, 'Metric': 'EBITDA ($M)'}
-            ebitda_dict = historical_data['quarterly_data']['EBITDA']
-            
-            for i, quarter_date in enumerate(sorted_quarters):
-                quarter_label = quarter_labels[i]
-                if quarter_date in ebitda_dict:
-                    row[quarter_label] = f"${ebitda_dict[quarter_date]/1e6:.1f}M"
-                else:
-                    row[quarter_label] = "N/A"
-            all_data.append(row)
-        
-        # FCF row
-        if 'Free Cash Flow' in historical_data['quarterly_data']:
-            row = {'Ticker': ticker, 'Metric': 'Free Cash Flow ($M)'}
-            fcf_dict = historical_data['quarterly_data']['Free Cash Flow']
-            
-            for i, quarter_date in enumerate(sorted_quarters):
-                quarter_label = quarter_labels[i]
-                if quarter_date in fcf_dict:
-                    row[quarter_label] = f"${fcf_dict[quarter_date]/1e6:.1f}M"
-                else:
-                    row[quarter_label] = "N/A"
-            all_data.append(row)
-        
-        # EPS row
-        if 'Basic EPS' in historical_data['quarterly_data']:
-            row = {'Ticker': ticker, 'Metric': 'EPS ($)'}
-            eps_dict = historical_data['quarterly_data']['Basic EPS']
-            
-            for i, quarter_date in enumerate(sorted_quarters):
-                quarter_label = quarter_labels[i]
-                if quarter_date in eps_dict:
-                    row[quarter_label] = f"${eps_dict[quarter_date]:.3f}"
-                else:
-                    row[quarter_label] = "N/A"
-            all_data.append(row)
+    # Define KPIs to create tables for
+    kpis = {
+        'Revenue': ('Revenue', 'M', 1e6),
+        'EBITDA': ('EBITDA', 'M', 1e6), 
+        'Net Income': ('Net Income', 'M', 1e6),
+        'Free Cash Flow': ('Free Cash Flow', 'M', 1e6),
+        'Basic EPS': ('Basic EPS', '', 1)
+    }
     
-    if not all_data:
-        return html.Div("No historical data available")
+    tables = []
     
-    df = pd.DataFrame(all_data)
-    
-    # Create table with styling and filtering
-    table = dash_table.DataTable(
-        data=df.to_dict('records'),
-        columns=[{"name": col, "id": col} for col in df.columns],
-        filter_action="native",  # Enable filtering
-        sort_action="native",    # Enable sorting
-        style_cell={
-            'textAlign': 'center',
-            'padding': '10px',
-            'fontFamily': 'Arial, sans-serif',
-            'fontSize': '12px',
-            'whiteSpace': 'normal',
-            'height': 'auto',
-        },
-        style_header={
-            'backgroundColor': 'rgb(230, 230, 230)',
-            'fontWeight': 'bold',
-            'textAlign': 'center'
-        },
-        style_data_conditional=[
-            # Highlight EPS and EBITDA negative values in red
-            {
-                'if': {
-                    'filter_query': '{Metric} contains "EPS" && {' + col + '} contains "-"',
-                    'column_id': col
+    for kpi_name, (metric_key, unit_suffix, divisor) in kpis.items():
+        # Create data for this KPI
+        kpi_data = []
+        
+        for ticker in sorted(ticker_data.keys()):
+            historical_data = ticker_data[ticker]
+            row = {'Company': ticker}
+            
+            if metric_key in historical_data['quarterly_data']:
+                metric_dict = historical_data['quarterly_data'][metric_key]
+                
+                for i, quarter_date in enumerate(sorted_quarters):
+                    quarter_label = quarter_labels[i + 1]  # +1 because first col is Company
+                    
+                    if quarter_date in metric_dict:
+                        value = metric_dict[quarter_date]
+                        if unit_suffix == 'M':
+                            row[quarter_label] = f"${value/divisor:.1f}M"
+                        else:
+                            row[quarter_label] = f"${value:.2f}" if value != 0 else "$0.00"
+                    else:
+                        row[quarter_label] = "N/A"
+            else:
+                # Fill with N/A if metric not available
+                for quarter_label in quarter_labels[1:]:
+                    row[quarter_label] = "N/A"
+            
+            kpi_data.append(row)
+        
+        # Create DataFrame and table for this KPI
+        if kpi_data:
+            df = pd.DataFrame(kpi_data)
+            
+            table = dash_table.DataTable(
+                data=df.to_dict('records'),
+                columns=[{"name": col, "id": col} for col in df.columns],
+                sort_action="native",
+                style_cell={
+                    'textAlign': 'center',
+                    'padding': '8px',
+                    'fontFamily': 'Arial, sans-serif',
+                    'fontSize': '11px',
                 },
-                'color': 'red',
-            } for col in quarter_labels
-        ] + [
-            {
-                'if': {
-                    'filter_query': '{Metric} contains "EBITDA" && {' + col + '} contains "-"',
-                    'column_id': col
+                style_header={
+                    'backgroundColor': 'rgb(240, 240, 240)',
+                    'fontWeight': 'bold',
+                    'textAlign': 'center'
                 },
-                'color': 'red',
-            } for col in quarter_labels
-        ] + [
-            # Highlight positive EPS in green
-            {
-                'if': {
-                    'filter_query': '{Metric} contains "EPS" && !{' + col + '} contains "-" && !{' + col + '} contains "N/A"',
-                    'column_id': col
-                },
-                'color': 'green',
-            } for col in quarter_labels
-        ],
-        style_table={'overflowX': 'auto'}
-    )
+                style_table={'overflowX': 'auto', 'marginBottom': '20px'}
+            )
+            
+            # Add this KPI table to the list
+            tables.append(
+                dbc.Card([
+                    dbc.CardHeader([
+                        html.H5(f"📊 {kpi_name} - All Companies", className="mb-0")
+                    ]),
+                    dbc.CardBody([table])
+                ], className="mb-3")
+            )
     
-    return dbc.Card([
-        dbc.CardHeader([
-            html.H4("📋 Chart Data in Table Format", className="mb-0"),
-            html.P("Same data as in the charts above, organized by ticker and metric", className="text-muted mb-0 mt-1")
-        ]),
-        dbc.CardBody([table])
-    ])
+    return tables
 
 def create_historical_trends_table(tickers):
     """Create a comprehensive table with historical trends and margins for all tickers"""
@@ -837,8 +791,8 @@ def update_tab_content(active_tab):
                 ], className="mb-4"),
                 dbc.Row([
                     dbc.Col([
-                        html.H4("📊 Quarterly Financial Data"),
-                        create_chart_data_table(tickers)
+                        html.H4("📊 KPI Tables - Each Metric by Company"),
+                        html.Div(create_kpi_tables(tickers))
                     ], width=12)
                 ])
             ]
