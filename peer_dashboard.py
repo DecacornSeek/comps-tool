@@ -1545,8 +1545,26 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
                 ], width=8),
                 dbc.Col([
                     html.Div([
-                        html.H3(current_price, className="text-white mb-0 fw-bold"),
-                        html.Small(price_change, className="text-success")
+                        dbc.Row([
+                            dbc.Col([
+                                html.H3(current_price, className="text-white mb-0 fw-bold"),
+                                html.Small(price_change, className="text-success")
+                            ], width=12),
+                        ]),
+                        dbc.Row([
+                            dbc.Col([
+                                html.Small("Market Cap", className="text-white-50"),
+                                html.Div(get_formatted_market_cap(real_metrics), className="text-white fw-bold")
+                            ], width=4),
+                            dbc.Col([
+                                html.Small("P/E Ratio", className="text-white-50"),
+                                html.Div(get_formatted_pe_ratio(real_metrics), className="text-white fw-bold")
+                            ], width=4),
+                            dbc.Col([
+                                html.Small("EPS", className="text-white-50"),
+                                html.Div(get_formatted_eps(real_metrics), className="text-white fw-bold")
+                            ], width=4)
+                        ], className="mt-2")
                     ], className="text-end")
                 ], width=4)
             ])
@@ -1557,11 +1575,11 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
     left_charts = dbc.Col([
         # Revenue/Earnings Chart
         dbc.Card([
-            dbc.CardHeader("Revenue and Earnings Development (Annual)"),
+            dbc.CardHeader("Revenue, Profits & Margins (Quarterly - Last 3 Years)"),
             dbc.CardBody([
                 dcc.Graph(
-                    figure=create_real_revenue_chart(ticker),
-                    style={'height': '250px'}
+                    figure=create_comprehensive_financial_chart(ticker),
+                    style={'height': '350px'}
                 )
             ])
         ], className="mb-3"),
@@ -1584,11 +1602,11 @@ def create_nvidia_style_dashboard(ticker='ZETA'):
     # Default scores if no real data
     if not score_cards_data:
         score_cards_data = [
-            {"title": "QUALITY CHECK", "score": "10", "max_score": "15", "color": "warning", 
+            {"title": "GROWTH AND STABILITY", "score": "Moderate", "max_score": "", "color": "warning", 
              "details": ["Data not available"]},
             {"title": "REVENUE GROWTH 2Y", "score": "N/A", "max_score": "", "color": "secondary",
              "details": ["Data not available"]},
-            {"title": "GROWTH CHECK", "score": "8", "max_score": "15", "color": "warning",
+            {"title": "GROWTH CHECK", "score": "Moderate", "max_score": "", "color": "warning",
              "details": ["Data not available"]},
             {"title": "AAQS SCORE", "score": "6", "max_score": "", "color": "warning", 
              "details": ["Data not available"]}
@@ -1809,6 +1827,204 @@ def create_metrics_section(title, metrics):
         dbc.CardBody(metric_items, className="p-4")
     ], className="mb-3", style=card_style)
 
+def get_formatted_market_cap(real_metrics):
+    """Format market cap for display"""
+    if real_metrics and 'raw_data' in real_metrics and 'info' in real_metrics['raw_data']:
+        info = real_metrics['raw_data']['info']
+        if 'marketCap' in info and info['marketCap']:
+            market_cap = info['marketCap']
+            if market_cap >= 1e9:
+                return f"${market_cap / 1e9:.1f}B"
+            elif market_cap >= 1e6:
+                return f"${market_cap / 1e6:.1f}M"
+            else:
+                return f"${market_cap:,.0f}"
+    return "N/A"
+
+def get_formatted_pe_ratio(real_metrics):
+    """Format P/E ratio for display"""
+    if real_metrics and 'raw_data' in real_metrics and 'info' in real_metrics['raw_data']:
+        info = real_metrics['raw_data']['info']
+        if 'trailingPE' in info and info['trailingPE']:
+            return f"{info['trailingPE']:.1f}"
+        elif 'forwardPE' in info and info['forwardPE']:
+            return f"{info['forwardPE']:.1f}"
+    return "N/A"
+
+def get_formatted_eps(real_metrics):
+    """Format EPS for display"""
+    if real_metrics and 'raw_data' in real_metrics and 'info' in real_metrics['raw_data']:
+        info = real_metrics['raw_data']['info']
+        if 'trailingEps' in info and info['trailingEps'] is not None:
+            return f"${info['trailingEps']:.2f}"
+        elif 'forwardEps' in info and info['forwardEps'] is not None:
+            return f"${info['forwardEps']:.2f}"
+    return "N/A"
+
+def create_comprehensive_financial_chart(ticker):
+    """Create comprehensive financial chart like the provided image with quarterly data"""
+    
+    try:
+        stock = yf.Ticker(ticker)
+        
+        # Get quarterly financial data
+        quarterly_financials = stock.quarterly_financials
+        
+        if quarterly_financials.empty:
+            return create_fallback_chart()
+        
+        # Get last 12 quarters (3 years) of data
+        periods = quarterly_financials.columns[:12]
+        
+        # Extract key metrics
+        revenue_data = []
+        ebit_data = []
+        net_income_data = []
+        margins = []
+        quarter_labels = []
+        
+        for period in periods:
+            # Revenue
+            if 'Total Revenue' in quarterly_financials.index:
+                revenue = quarterly_financials.loc['Total Revenue', period] / 1e9  # Convert to billions
+                revenue_data.append(revenue if not pd.isna(revenue) else 0)
+            else:
+                revenue_data.append(0)
+            
+            # EBIT (Operating Income)
+            if 'Operating Income' in quarterly_financials.index:
+                ebit = quarterly_financials.loc['Operating Income', period] / 1e9
+                ebit_data.append(ebit if not pd.isna(ebit) else 0)
+            else:
+                ebit_data.append(0)
+            
+            # Net Income
+            if 'Net Income' in quarterly_financials.index:
+                net_income = quarterly_financials.loc['Net Income', period] / 1e9
+                net_income_data.append(net_income if not pd.isna(net_income) else 0)
+            else:
+                net_income_data.append(0)
+            
+            # Calculate net profit margin
+            if revenue_data[-1] != 0:
+                margin = (net_income_data[-1] / revenue_data[-1]) * 100
+                margins.append(margin)
+            else:
+                margins.append(0)
+            
+            # Format quarter label
+            quarter_labels.append(f"{period.strftime('%Y')}-Q{((period.month-1)//3)+1}")
+        
+        # Reverse to show chronologically (oldest to newest)
+        revenue_data = revenue_data[::-1]
+        ebit_data = ebit_data[::-1]
+        net_income_data = net_income_data[::-1]
+        margins = margins[::-1]
+        quarter_labels = quarter_labels[::-1]
+        
+        # Create the comprehensive chart
+        fig = go.Figure()
+        
+        # Add Revenue bars (dark blue)
+        fig.add_trace(go.Bar(
+            name='Revenue',
+            x=quarter_labels,
+            y=revenue_data,
+            marker_color='#1f4e79',  # Dark blue
+            yaxis='y',
+            offsetgroup=1
+        ))
+        
+        # Add EBIT bars (medium blue)
+        fig.add_trace(go.Bar(
+            name='EBIT', 
+            x=quarter_labels,
+            y=ebit_data,
+            marker_color='#4a90c2',  # Medium blue
+            yaxis='y',
+            offsetgroup=1
+        ))
+        
+        # Add Net Income bars (light blue)
+        fig.add_trace(go.Bar(
+            name='Profit',
+            x=quarter_labels,
+            y=net_income_data,
+            marker_color='#87ceeb',  # Light blue
+            yaxis='y', 
+            offsetgroup=1
+        ))
+        
+        # Add Net Profit Margin line (green)
+        fig.add_trace(go.Scatter(
+            name='Net Profit Margin (%)',
+            x=quarter_labels,
+            y=margins,
+            mode='lines+markers',
+            line=dict(color='#00b300', width=3),  # Green line
+            marker=dict(size=6, color='#00b300'),
+            yaxis='y2'
+        ))
+        
+        # Update layout with dual y-axes like the original
+        fig.update_layout(
+            title='Revenue and Profit Development (Quarterly)',
+            xaxis=dict(
+                title='Quarter',
+                showgrid=True,
+                gridcolor='lightgray'
+            ),
+            yaxis=dict(
+                title='Revenue, EBIT, Profit (Billions)',
+                side='left',
+                showgrid=True,
+                gridcolor='lightgray'
+            ),
+            yaxis2=dict(
+                title='Net Profit Margin (%)',
+                side='right',
+                overlaying='y',
+                showgrid=False,
+                ticksuffix='%'
+            ),
+            barmode='group',
+            height=350,
+            margin=dict(l=60, r=60, t=40, b=60),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            ),
+            plot_bgcolor='white'
+        )
+        
+        return fig
+        
+    except Exception as e:
+        print(f"Error creating comprehensive chart for {ticker}: {e}")
+        return create_fallback_chart()
+
+def create_fallback_chart():
+    """Create a fallback chart when data is not available"""
+    
+    fig = go.Figure()
+    
+    # Add empty traces for consistency
+    fig.add_trace(go.Bar(name='Revenue', x=[], y=[], marker_color='#1f4e79'))
+    fig.add_trace(go.Bar(name='EBIT', x=[], y=[], marker_color='#4a90c2')) 
+    fig.add_trace(go.Bar(name='Profit', x=[], y=[], marker_color='#87ceeb'))
+    fig.add_trace(go.Scatter(name='Net Profit Margin (%)', x=[], y=[], line=dict(color='#00b300')))
+    
+    fig.update_layout(
+        title='Financial Data Not Available',
+        height=350,
+        margin=dict(l=60, r=60, t=40, b=60)
+    )
+    
+    return fig
+
 def get_real_nvidia_metrics(ticker):
     """Get real NVIDIA-style metrics using Yahoo Finance data"""
     
@@ -1870,9 +2086,9 @@ def get_real_nvidia_metrics(ticker):
             elif op_margin > 5: quality_score += 1
         
         score_cards.append({
-            'title': 'QUALITY CHECK',
-            'score': str(quality_score),
-            'max_score': '15',
+            'title': 'GROWTH AND STABILITY',
+            'score': 'Strong' if quality_score >= 12 else ('Moderate' if quality_score >= 8 else 'Weak'),
+            'max_score': '',
             'color': 'success' if quality_score >= 12 else ('warning' if quality_score >= 8 else 'danger'),
             'details': quality_details
         })
