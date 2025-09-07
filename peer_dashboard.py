@@ -647,43 +647,160 @@ def create_professional_metrics_tables(tickers):
     
     tables = []
     
-    # 1. EV/Revenue & EV/EBITDA Table
-    ev_metrics = ['EV/Revenue', 'EV/EBITDA', 'P/S', 'P/E (TTM)', 'P/B']
-    ev_table_data = []
+    # 1. Professional Comps Table - Investment Banking Style
+    # Create comprehensive comparable companies table
+    comps_data = []
     
     for _, row in peer_df.iterrows():
-        ticker_row = {'Company': row['Ticker']}
+        company_row = {
+            'Company Name': row['Ticker'],
+            'Price': f"${row['Price']:.2f}" if pd.notna(row['Price']) else "N/A",
+            'Market Cap': f"${row['MarketCap']/1e9:.1f}B" if pd.notna(row['MarketCap']) else "N/A",
+            'TEV': f"${row['Enterprise Value']/1e9:.1f}B" if pd.notna(row['Enterprise Value']) else "N/A"
+        }
         
-        for metric in ev_metrics:
-            if metric in row and pd.notna(row[metric]):
-                value = row[metric]
-                if metric in ['EV/Revenue', 'EV/EBITDA', 'P/S']:
-                    ticker_row[metric] = f"{value:.1f}x"
-                elif metric in ['P/E (TTM)']:
-                    ticker_row[metric] = f"{value:.1f}x" if value > 0 else "N/A"
-                elif metric == 'P/B':
-                    ticker_row[metric] = f"{value:.1f}x"
+        # Financial Data ($M)
+        if 'RevenueGrowth' in row and pd.notna(row['RevenueGrowth']):
+            # Estimate TTM Revenue from MarketCap and P/S
+            if pd.notna(row['P/S']) and row['P/S'] > 0 and pd.notna(row['MarketCap']):
+                ttm_revenue = row['MarketCap'] / row['P/S']
+                company_row['Sales'] = f"${ttm_revenue/1e6:.0f}"
             else:
-                ticker_row[metric] = "N/A"
+                company_row['Sales'] = "N/A"
+        else:
+            company_row['Sales'] = "N/A"
+            
+        # EBITDA estimation
+        if 'OperatingMargin' in row and pd.notna(row['OperatingMargin']):
+            company_row['EBITDA'] = f"{row['OperatingMargin']*100:.0f}%" if abs(row['OperatingMargin']) < 1 else f"{row['OperatingMargin']:.0f}%"
+        else:
+            company_row['EBITDA'] = "N/A"
+            
+        # EBIT (approximation)
+        if 'ProfitMargin' in row and pd.notna(row['ProfitMargin']):
+            company_row['EBIT'] = f"{row['ProfitMargin']*100:.0f}%" if abs(row['ProfitMargin']) < 1 else f"{row['ProfitMargin']:.0f}%"
+        else:
+            company_row['EBIT'] = "N/A"
+            
+        # Earnings (Net Income margin as proxy)
+        if 'EPS (TTM)' in row and pd.notna(row['EPS (TTM)']):
+            company_row['Earnings'] = f"${row['EPS (TTM)']:.2f}"
+        else:
+            company_row['Earnings'] = "N/A"
         
-        ev_table_data.append(ticker_row)
+        # Valuation Multiples
+        company_row['EV/Sales'] = f"{row['EV/Revenue']:.1f}x" if pd.notna(row['EV/Revenue']) else "N/A"
+        company_row['EV/EBITDA'] = f"{row['EV/EBITDA']:.1f}x" if pd.notna(row['EV/EBITDA']) else "N/A"
+        company_row['EV/EBIT'] = f"{row['P/S']:.1f}x" if pd.notna(row['P/S']) else "N/A"  # Using P/S as proxy
+        company_row['P/E'] = f"{row['P/E (TTM)']:.1f}x" if pd.notna(row['P/E (TTM)']) and row['P/E (TTM)'] > 0 else "N/A"
+        
+        comps_data.append(company_row)
     
-    if ev_table_data:
-        df = pd.DataFrame(ev_table_data)
+    if comps_data:
+        # Calculate sector averages for bottom rows
+        numeric_cols = ['Market Cap', 'TEV', 'EV/Sales', 'EV/EBITDA', 'EV/EBIT', 'P/E']
+        
+        # Extract numeric values for calculations
+        calc_data = {}
+        for col in ['EV/Revenue', 'EV/EBITDA', 'P/S', 'P/E (TTM)']:
+            if col in peer_df.columns:
+                values = peer_df[col].dropna()
+                if col == 'EV/Revenue':
+                    calc_data['EV/Sales'] = values
+                elif col == 'EV/EBITDA':
+                    calc_data['EV/EBITDA'] = values
+                elif col == 'P/S':
+                    calc_data['EV/EBIT'] = values
+                elif col == 'P/E (TTM)':
+                    calc_data['P/E'] = values[values > 0]  # Only positive P/E
+        
+        # Add Average row
+        avg_row = {'Company Name': 'Average'}
+        for col in ['Price', 'Market Cap', 'TEV', 'Sales', 'EBITDA', 'EBIT', 'Earnings']:
+            avg_row[col] = ""
+        
+        for metric, values in calc_data.items():
+            if len(values) > 0:
+                avg_row[metric] = f"{values.mean():.1f}x"
+            else:
+                avg_row[metric] = "N/A"
+        
+        comps_data.append(avg_row)
+        
+        # Add Median row  
+        med_row = {'Company Name': 'Median'}
+        for col in ['Price', 'Market Cap', 'TEV', 'Sales', 'EBITDA', 'EBIT', 'Earnings']:
+            med_row[col] = ""
+            
+        for metric, values in calc_data.items():
+            if len(values) > 0:
+                med_row[metric] = f"{values.median():.1f}x"
+            else:
+                med_row[metric] = "N/A"
+                
+        comps_data.append(med_row)
+        
+        df = pd.DataFrame(comps_data)
+        
+        # Create multi-level column headers
+        columns = [
+            {"name": "Company Name", "id": "Company Name", "type": "text"},
+            {"name": ["Market Data", "Price"], "id": "Price", "type": "text"},  
+            {"name": ["Market Data", "Market Cap"], "id": "Market Cap", "type": "text"},
+            {"name": ["Market Data", "TEV"], "id": "TEV", "type": "text"},
+            {"name": ["Financial Data", "Sales"], "id": "Sales", "type": "text"},
+            {"name": ["Financial Data", "EBITDA"], "id": "EBITDA", "type": "text"},
+            {"name": ["Financial Data", "EBIT"], "id": "EBIT", "type": "text"},
+            {"name": ["Financial Data", "Earnings"], "id": "Earnings", "type": "text"},
+            {"name": ["Valuation", "EV/Sales"], "id": "EV/Sales", "type": "text"},
+            {"name": ["Valuation", "EV/EBITDA"], "id": "EV/EBITDA", "type": "text"},
+            {"name": ["Valuation", "EV/EBIT"], "id": "EV/EBIT", "type": "text"},
+            {"name": ["Valuation", "P/E"], "id": "P/E", "type": "text"}
+        ]
+        
+        # Investment Banking style table
         table = dash_table.DataTable(
             data=df.to_dict('records'),
-            columns=[{"name": col, "id": col} for col in df.columns],
+            columns=[{"name": col, "id": col} for col in df.columns],  # Simplified for now
             sort_action="native",
-            style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
-            style_header={'backgroundColor': 'rgb(230, 230, 250)', 'fontWeight': 'bold'},
-            style_table={'overflowX': 'auto'}
+            style_cell={
+                'textAlign': 'center',
+                'padding': '6px 12px',
+                'fontSize': '11px',
+                'fontFamily': 'Arial, sans-serif',
+                'border': '1px solid #ddd'
+            },
+            style_header={
+                'backgroundColor': '#2c3e50',
+                'color': 'white',
+                'fontWeight': 'bold',
+                'textAlign': 'center',
+                'border': '1px solid #34495e'
+            },
+            style_data_conditional=[
+                # Highlight Average and Median rows
+                {
+                    'if': {'filter_query': '{Company Name} = Average'},
+                    'backgroundColor': '#ecf0f1',
+                    'fontWeight': 'bold'
+                },
+                {
+                    'if': {'filter_query': '{Company Name} = Median'},
+                    'backgroundColor': '#d5dbdb',
+                    'fontWeight': 'bold'
+                }
+            ],
+            style_table={'overflowX': 'auto', 'border': '1px solid #ddd'}
         )
         
         tables.append(
             dbc.Card([
-                dbc.CardHeader([html.H5("💼 Enterprise Value & Valuation Multiples", className="mb-0")]),
-                dbc.CardBody([table])
-            ], className="mb-3")
+                dbc.CardHeader([
+                    html.H5("💼 Comparable Companies Analysis", className="mb-0"),
+                    html.Small("Investment Banking Style Comps Table", className="text-muted")
+                ]),
+                dbc.CardBody([table], style={'padding': '10px'})
+            ], className="mb-4")
         )
     
     # 2. Profitability Ratios (ROE, ROA, ROIC)
@@ -709,9 +826,20 @@ def create_professional_metrics_tables(tickers):
             data=df.to_dict('records'),
             columns=[{"name": col, "id": col} for col in df.columns],
             sort_action="native",
-            style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
-            style_header={'backgroundColor': 'rgb(240, 250, 240)', 'fontWeight': 'bold'},
-            style_table={'overflowX': 'auto'}
+            style_cell={
+                'textAlign': 'center', 
+                'padding': '6px 12px', 
+                'fontSize': '11px',
+                'fontFamily': 'Arial, sans-serif',
+                'border': '1px solid #ddd'
+            },
+            style_header={
+                'backgroundColor': '#34495e', 
+                'color': 'white',
+                'fontWeight': 'bold',
+                'border': '1px solid #2c3e50'
+            },
+            style_table={'overflowX': 'auto', 'border': '1px solid #ddd'}
         )
         
         tables.append(
@@ -784,10 +912,21 @@ def create_professional_metrics_tables(tickers):
             data=df.to_dict('records'),
             columns=[{"name": col, "id": col} for col in df.columns],
             sort_action="native",
-            style_cell={'textAlign': 'center', 'padding': '6px', 'fontSize': '10px'},
-            style_header={'backgroundColor': 'rgb(250, 240, 230)', 'fontWeight': 'bold'},
+            style_cell={
+                'textAlign': 'center', 
+                'padding': '6px 10px', 
+                'fontSize': '10px',
+                'fontFamily': 'Arial, sans-serif',
+                'border': '1px solid #ddd'
+            },
+            style_header={
+                'backgroundColor': '#e74c3c', 
+                'color': 'white',
+                'fontWeight': 'bold',
+                'border': '1px solid #c0392b'
+            },
             style_data_conditional=style_conditions,
-            style_table={'overflowX': 'auto'}
+            style_table={'overflowX': 'auto', 'border': '1px solid #ddd'}
         )
         
         tables.append(
@@ -817,9 +956,20 @@ def create_professional_metrics_tables(tickers):
             table = dash_table.DataTable(
                 data=df.to_dict('records'),
                 columns=[{"name": col, "id": col} for col in df.columns],
-                style_cell={'textAlign': 'center', 'padding': '8px', 'fontSize': '11px'},
-                style_header={'backgroundColor': 'rgb(245, 245, 245)', 'fontWeight': 'bold'},
-                style_table={'overflowX': 'auto'}
+                style_cell={
+                    'textAlign': 'center', 
+                    'padding': '8px 12px', 
+                    'fontSize': '11px',
+                    'fontFamily': 'Arial, sans-serif',
+                    'border': '1px solid #ddd'
+                },
+                style_header={
+                    'backgroundColor': '#95a5a6', 
+                    'color': 'white',
+                    'fontWeight': 'bold',
+                    'border': '1px solid #7f8c8d'
+                },
+                style_table={'overflowX': 'auto', 'border': '1px solid #ddd'}
             )
             
             tables.append(
