@@ -2549,8 +2549,6 @@ def get_real_nvidia_metrics(ticker):
         print(f"Error fetching NVIDIA-style metrics for {ticker}: {e}")
         return None
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8051)
 # === IMPROVED FUNCTIONS ===
 
 def calculate_improved_growth_metrics_new(ticker):
@@ -2661,7 +2659,7 @@ def calculate_improved_growth_metrics_new(ticker):
             current_price = info['regularMarketPrice']
         
         if current_price:
-            metrics['Current_Price'] = f"$\{current_price:.2f}"
+            metrics['Current_Price'] = f"${current_price:.2f}"
             
             # Get historical price data
             try:
@@ -2868,3 +2866,5 @@ def create_improved_investment_banking_table_new(metrics):
     ], style={'margin': '0 auto'})
 
 
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=8051)
